@@ -1,7 +1,7 @@
 package test
 
 import (
-	"libsd3/pkg/dbutil"
+	"go-libsd3/pkg/dbutil"
 	"testing"
 )
 

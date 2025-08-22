@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"libsd3/helper/logging"
+	"go-libsd3/helper/logging"
 )
 
 func TestLoggerDailyRotation(t *testing.T) {

@@ -1,7 +1,7 @@
 package test
 
 import (
-	"libsd3/helper/kunci"
+	"go-libsd3/helper/kunci"
 	"os"
 	"path/filepath"
 	"testing"

@@ -1,4 +1,4 @@
-# Use Case libsd3
+# Use Case go-libsd3
 
 ---
 ## dbutil
