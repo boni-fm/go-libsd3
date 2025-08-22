@@ -42,7 +42,7 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	pathkunci := filepath.Join(homepath, "_docker", "_app", "kunci", "SettingWeb.xml")
 	xmlFile, err := os.Open(pathkunci)
 	if err != nil {
-		log.Fatalf("Failed to open SettingWeb.xml: %v", err)
+		log.SayFatalf("Failed to open SettingWeb.xml: %v", err)
 	}
 
 	defer xmlFile.Close()

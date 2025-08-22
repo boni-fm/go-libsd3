@@ -1,9 +1,10 @@
 package logging
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/mattn/go-colorable"
 	"github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
 )
@@ -23,33 +24,49 @@ func (l *logger) SayWithFields(msg string, fields map[string]interface{}) {
 	l.WithFields(fields).Info(msg)
 }
 
+func (l *logger) SayFatal(msg string) {
+	l.Fatal(msg)
+}
+func (l *logger) SayFatalf(fmt string, args ...interface{}) {
+	l.Fatalf(fmt, args...)
+}
+func (l *logger) SayError(msg string) {
+	l.Error(msg)
+}
+func (l *logger) SayErrorf(fmt string, args ...interface{}) {
+	l.Errorf(fmt, args...)
+}
+
 func NewLogger() *logger {
 
 	logLevel := logrus.InfoLevel
 	log := logrus.New()
 	log.SetLevel(logLevel)
+
+	homedir, _ := os.UserHomeDir()
+	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
+	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
+
 	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   "logs/console.log",
+		Filename:   filepath,
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,  // amouts
 		MaxAge:     28, //days
 		Level:      logLevel,
-		Formatter: &logrus.JSONFormatter{
-			TimestampFormat: time.RFC822,
+		Formatter: &logrus.TextFormatter{
+			PadLevelText:           true,
+			ForceColors:            false,
+			FullTimestamp:          true,
+			TimestampFormat:        "2006-01-02 15:04:05",
+			DisableLevelTruncation: true,
+			QuoteEmptyFields:       true,
+			DisableQuote:           true,
+			DisableTimestamp:       false,
 		},
 	})
-
 	if err != nil {
 		log.Fatalf("Failed to initialize file rotate hook: %v", err)
 	}
-
-	log.SetOutput(colorable.NewColorableStdout())
-	log.SetFormatter(&logrus.TextFormatter{
-		PadLevelText:    true,
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05",
-	})
 
 	log.AddHook(rotateFileHook)
 

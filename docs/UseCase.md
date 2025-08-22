@@ -16,3 +16,15 @@ db, err := database.Connect()
 	}
 	fmt.Println(name)
 ```
+
+## logging
+```
+log := logging.NewLogger()
+log.Say("Test log message")
+log.Sayf("Test logf %d", 123)
+log.SayWithField("Test with field", "foo", "bar")
+log.SayWithFields("Test with fields", map[string]interface{}{"a": 1, "b": "c"})
+log.Warn("Test warn level")
+log.Errorf("Test errorf %s", "err")
+```
+kesimpen di folder `{home directory}/_docker/_app/logs/logs{tanggal}`

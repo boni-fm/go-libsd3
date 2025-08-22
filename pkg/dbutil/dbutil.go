@@ -35,7 +35,7 @@ func Connect() (*PostgreDB, error) {
 
 	DB, err := sql.Open("postgres", connString)
 	if err != nil {
-		log.Fatal(err)
+		log.SayError(err.Error())
 		return nil, err
 	}
 
@@ -44,7 +44,7 @@ func Connect() (*PostgreDB, error) {
 
 func (p *PostgreDB) Close() error {
 	if p.db != nil {
-		log.Warn("Closing database connection ~")
+		log.Say("Closing database connection ~")
 		return p.db.Close()
 	}
 	return nil
@@ -54,11 +54,11 @@ func (p *PostgreDB) HealthCheck() string {
 	if p.db != nil {
 		err := p.db.Ping()
 		if err != nil {
-			log.Fatal("Koneksi DB gk sehat kawan ~")
+			log.SayFatal("Koneksi DB gk sehat kawan ~")
 			return "Koneksi DB gk sehat kawan ~"
 		}
 
-		log.Info("Koneksi DB sehat walafiat ~")
+		log.Say("Koneksi DB sehat walafiat ~")
 		return "Koneksi DB sehat walafiat ~"
 	}
 	return "Koneksi DB gk sehat kawan ~"
