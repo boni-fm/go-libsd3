@@ -9,6 +9,11 @@ import (
 	"github.com/snowzach/rotatefilehook"
 )
 
+/*
+	TODO :
+	- perbaiki struktur log nya supaya lebih bagus wkwkwk
+*/
+
 type logger struct{ *logrus.Logger }
 
 func (l *logger) Say(msg string) {
