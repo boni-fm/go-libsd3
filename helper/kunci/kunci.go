@@ -36,7 +36,7 @@ type ConnectionStringSQL struct {
 
 func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	homepath, _ := os.UserHomeDir()
-	pathkunci := filepath.Join(homepath, "_docker", "kunci", "SettingWeb.xml")
+	pathkunci := filepath.Join(homepath, "_docker", "_app", "kunci", "SettingWeb.xml")
 	xmlFile, err := os.Open(pathkunci)
 	if err != nil {
 		fmt.Println(err)

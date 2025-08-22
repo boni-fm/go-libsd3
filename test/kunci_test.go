@@ -1,4 +1,4 @@
-package kunci_test
+package test
 
 import (
 	"libsd3/helper/kunci"
