@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"libsd3/helper/logging"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	TODO :
 	- Implementasi ambil sql constring dari settingweb.xml
 */
+
+var log = logging.NewLogger()
 
 type SettingWeb[T ConnectionStringPostgre | ConnectionStringSQL] struct {
 	XMLName          xml.Name `xml:"SettingConfig"`
@@ -39,7 +42,7 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	pathkunci := filepath.Join(homepath, "_docker", "_app", "kunci", "SettingWeb.xml")
 	xmlFile, err := os.Open(pathkunci)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("Failed to open SettingWeb.xml: %v", err)
 	}
 
 	defer xmlFile.Close()

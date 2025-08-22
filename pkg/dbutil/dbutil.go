@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"libsd3/helper/kunci"
-	"log"
+	"libsd3/helper/logging"
 
 	_ "github.com/lib/pq"
 )
@@ -22,6 +22,8 @@ type IDatabase interface {
 type PostgreDB struct {
 	db *sql.DB
 }
+
+var log = logging.NewLogger()
 
 const POSTGRE_DBTYPE = "POSTGRE"
 
@@ -42,7 +44,7 @@ func Connect() (*PostgreDB, error) {
 
 func (p *PostgreDB) Close() error {
 	if p.db != nil {
-		log.Println("Closing database connection ~")
+		log.Warn("Closing database connection ~")
 		return p.db.Close()
 	}
 	return nil
@@ -50,6 +52,13 @@ func (p *PostgreDB) Close() error {
 
 func (p *PostgreDB) HealthCheck() string {
 	if p.db != nil {
+		err := p.db.Ping()
+		if err != nil {
+			log.Fatal("Koneksi DB gk sehat kawan ~")
+			return "Koneksi DB gk sehat kawan ~"
+		}
+
+		log.Info("Koneksi DB sehat walafiat ~")
 		return "Koneksi DB sehat walafiat ~"
 	}
 	return "Koneksi DB gk sehat kawan ~"
