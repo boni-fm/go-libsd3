@@ -1,10 +1,11 @@
 package test
 
 import (
-	"go-libsd3/helper/kunci"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/boni-fm/go-libsd3/helper/kunci"
 )
 
 func TestGetConnectionInfoPostgre(t *testing.T) {

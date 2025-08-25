@@ -3,11 +3,12 @@ package kunci
 import (
 	"encoding/xml"
 	"fmt"
-	"go-libsd3/helper/logging"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/boni-fm/go-libsd3/helper/logging"
 )
 
 /*

@@ -1,8 +1,9 @@
 package test
 
 import (
-	"go-libsd3/pkg/dbutil"
 	"testing"
+
+	"github.com/boni-fm/go-libsd3/pkg/dbutil"
 )
 
 func TestConnectAndClose(t *testing.T) {

@@ -1,4 +1,4 @@
-## go-libsd3
+## github.com/boni-fm/go-libsd3
 
 Library utilitas Go untuk aplikasi SD3.
 
@@ -19,7 +19,7 @@ Library utilitas Go untuk aplikasi SD3.
 
 
 ```go
-import "github.com/boni-fm/go-libsd3/helper/logging"
+import "github.com/boni-fm/github.com/boni-fm/go-libsd3/helper/logging"
 
 func main() {
 	log := logging.NewLogger()

@@ -1,4 +1,4 @@
-# Use Case go-libsd3
+# Use Case github.com/boni-fm/go-libsd3
 
 ---
 ## dbutil

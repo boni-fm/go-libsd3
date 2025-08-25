@@ -3,8 +3,9 @@ package dbutil
 import (
 	"database/sql"
 	"fmt"
-	"go-libsd3/helper/kunci"
-	"go-libsd3/helper/logging"
+
+	"github.com/boni-fm/go-libsd3/helper/kunci"
+	"github.com/boni-fm/go-libsd3/helper/logging"
 
 	_ "github.com/lib/pq"
 )
