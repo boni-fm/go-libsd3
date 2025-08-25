@@ -21,7 +21,15 @@ func TestLoggerDailyRotation(t *testing.T) {
 	// Check log file exists for today
 	homedir, _ := os.UserHomeDir()
 	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
-	logPath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
+	logDir := filepath.Join(homedir, "_docker", "_app", "logs")
+	logPath := filepath.Join(logDir, filename)
+
+	// Ensure log directory exists
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			t.Fatalf("Failed to create log directory: %v", err)
+		}
+	}
 
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		t.Errorf("Expected log file %s to exist", logPath)
