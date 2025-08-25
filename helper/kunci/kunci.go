@@ -12,8 +12,13 @@ import (
 )
 
 /*
-	TODO :
+	TODO:
 	- Implementasi ambil sql constring dari settingweb.xml
+	- buat supaya bisa baca settingwebgxxx.xml, sekarang masih bisa 1 doang
+	- sesuain kalo udh bisa baca gxxx ke dalam dbutil
+
+	TODO: Difficulty >> HARD!!
+	- set kunci dari GetVariable mirip dengan SettingLibb punya .net pak edwin
 */
 
 var log = logging.NewLogger()

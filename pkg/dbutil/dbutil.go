@@ -3,6 +3,7 @@ package dbutil
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 
 	"github.com/boni-fm/go-libsd3/helper/kunci"
 	"github.com/boni-fm/go-libsd3/helper/logging"
@@ -10,8 +11,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
+/*
+	TODO:
+	- buat class nya jadi singleton
+*/
+
 type IDatabase interface {
-	Connect() bool
+	Connect() (*PostgreDB, error)
 	Close() bool
 	HealthCheck() string
 	Select(query string, args ...interface{}) (*sql.Rows, error)
@@ -24,28 +30,35 @@ type PostgreDB struct {
 	db *sql.DB
 }
 
+var oncePG sync.Once
+
 var log = logging.NewLogger()
 
 const POSTGRE_DBTYPE = "POSTGRE"
 
-var DBPostgre *sql.DB
+var pgInstance *PostgreDB
 
-// fungsi yang dijalanin paling pertama sebelum exec query
+// buat initialize connection, make singleton
 func Connect() (*PostgreDB, error) {
-	connString := kunci.GetConnectionString(POSTGRE_DBTYPE)
-
-	DB, err := sql.Open("postgres", connString)
-	if err != nil {
-		log.SayError(err.Error())
-		return nil, err
+	if pgInstance == nil {
+		oncePG.Do(func() {
+			connString := kunci.GetConnectionString(POSTGRE_DBTYPE)
+			DB, err := sql.Open("postgres", connString)
+			if err != nil {
+				log.SayError("Gagal connect ke database: " + err.Error())
+				return
+			}
+			pgInstance = &PostgreDB{db: DB}
+		})
+		return pgInstance, nil
 	}
 
-	return &PostgreDB{db: DB}, nil
+	return pgInstance, nil
 }
 
 func (p *PostgreDB) Close() error {
 	if p.db != nil {
-		log.Say("Closing database connection ~")
+		log.Say("Pintu koneksi database ditutup ~")
 		return p.db.Close()
 	}
 	return nil
@@ -55,14 +68,16 @@ func (p *PostgreDB) HealthCheck() string {
 	if p.db != nil {
 		err := p.db.Ping()
 		if err != nil {
-			log.SayFatal("Koneksi DB gk sehat kawan ~")
-			return "Koneksi DB gk sehat kawan ~"
+			msgSakit := "Koneksi DB gk sehat kawan ~ " + err.Error()
+			log.SayFatal(msgSakit)
+			return msgSakit
 		}
 
-		log.Say("Koneksi DB sehat walafiat ~")
-		return "Koneksi DB sehat walafiat ~"
+		msgSehat := "Koneksi DB sehat walafiat ~ "
+		log.Say(msgSehat)
+		return msgSehat
 	}
-	return "Koneksi DB gk sehat kawan ~"
+	return "Loh kok databasenya kosong?? ~ "
 }
 
 func (p *PostgreDB) Select(query string, args ...interface{}) (*sql.Rows, error) {

@@ -10,8 +10,9 @@ import (
 )
 
 /*
-	TODO :
+	TODO:
 	- perbaiki struktur log nya supaya lebih bagus wkwkwk
+	- tambahin new logger custom sesuai dengan kebutuhan aplikasi
 */
 
 type logger struct{ *logrus.Logger }
@@ -50,6 +51,42 @@ func NewLogger() *logger {
 
 	homedir, _ := os.UserHomeDir()
 	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
+	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
+
+	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
+		Filename:   filepath,
+		MaxSize:    50, // megabytes
+		MaxBackups: 3,  // amouts
+		MaxAge:     28, //days
+		Level:      logLevel,
+		Formatter: &logrus.TextFormatter{
+			PadLevelText:           true,
+			ForceColors:            false,
+			FullTimestamp:          true,
+			TimestampFormat:        "2006-01-02 15:04:05",
+			DisableLevelTruncation: true,
+			QuoteEmptyFields:       true,
+			DisableQuote:           true,
+			DisableTimestamp:       false,
+		},
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize file rotate hook: %v", err)
+	}
+
+	log.AddHook(rotateFileHook)
+
+	return &logger{log}
+}
+
+func NewLoggerWithFilename(filename string) *logger {
+
+	logLevel := logrus.InfoLevel
+	log := logrus.New()
+	log.SetLevel(logLevel)
+
+	homedir, _ := os.UserHomeDir()
+	filename = "logs" + filename + time.Now().Format("2006-01-02") + ".log"
 	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
 
 	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{

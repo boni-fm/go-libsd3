@@ -7,7 +7,7 @@ import (
 	"github.com/boni-fm/go-libsd3/pkg/dbutil"
 )
 
-func GetUser(username string) {
+func GetUser(isPg bool, username string) {
 	log := logging.NewLogger()
 	db, err := dbutil.Connect()
 	if err != nil {
