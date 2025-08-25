@@ -1,4 +1,4 @@
-## github.com/boni-fm/go-libsd3
+## go-libsd3
 
 Library utilitas Go untuk aplikasi SD3.
 
