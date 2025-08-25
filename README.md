@@ -17,8 +17,9 @@ Library utilitas Go untuk aplikasi SD3.
 
 ### Contoh Penggunaan Logger
 
+
 ```go
-import "go-libsd3/helper/logging"
+import "github.com/boni-fm/go-libsd3/helper/logging"
 
 func main() {
 	log := logging.NewLogger()
