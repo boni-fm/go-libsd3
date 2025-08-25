@@ -57,6 +57,10 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	var connInfo ConnectionStringPostgre
 	xml.Unmarshal(byteValue, &connInfo)
 
+	if strings.Contains(connInfo.UserPostgres, "Timeout") {
+		connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
+	}
+
 	return connInfo
 }
 

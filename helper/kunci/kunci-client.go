@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 )
 
 /*
@@ -16,14 +17,6 @@ import (
 
 var prefix = "mujiyono"
 var Baseurl = "localhost"
-
-// For testability
-func SetBaseurlForTest(val string) {
-	Baseurl = val
-}
-func BaseurlForTest() string {
-	return Baseurl
-}
 
 type KunciClient struct {
 	httpClient *http.Client
@@ -78,5 +71,11 @@ func (kc *KunciClient) GetVariable(key string, pathKunci string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	return string(bodyBytes), nil
+
+	result := string(bodyBytes)
+	if strings.Contains(result, "Timeout") {
+		result = strings.Split(result, ";")[0]
+	}
+
+	return result, nil
 }
