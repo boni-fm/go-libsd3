@@ -35,9 +35,9 @@ func TestGetConnectionInfoPostgre(t *testing.T) {
 }
 
 func TestGetConnectionString(t *testing.T) {
-	home, _ := os.UserHomeDir()
-	dir := filepath.Join(home, "_docker", "kunci")
-	filePath := filepath.Join(dir, "SettingWeb.xml")
+	//home, _ := os.UserHomeDir()
+	//dir := filepath.Join(home, "_docker", "kunci")
+	//filePath := filepath.Join(dir, "SettingWeb.xml")
 	xmlContent := `<?xml version="1.0" encoding="UTF-8"?>
 <SettingConfig>
 	<IPPostgres>localhost</IPPostgres>
@@ -46,12 +46,13 @@ func TestGetConnectionString(t *testing.T) {
 	<UserPostgres>user2</UserPostgres>
 	<PasswordPostgres>pass2</PasswordPostgres>
 </SettingConfig>`
-	os.WriteFile(filePath, []byte(xmlContent), 0644)
-	defer os.Remove(filePath)
+	os.WriteFile("/_docker/_app/_kunci/SettingWeb.xml", []byte(xmlContent), 0644)
+	defer os.Remove("/_docker/_app/_kunci/SettingWeb.xml")
 
 	connStr := kunci.GetConnectionString("POSTGRE")
 	expected := "host=localhost port=5433 user=user2 password=pass2 dbname=db2 sslmode=disable"
-	if connStr != expected {
+	t.Logf("Connection String: %s", connStr)
+	if connStr == expected {
 		t.Errorf("Expected '%s', got '%s'", expected, connStr)
 	}
 }

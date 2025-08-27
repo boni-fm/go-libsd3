@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/boni-fm/go-libsd3/helper/logging"
@@ -44,13 +44,18 @@ type ConnectionStringSQL struct {
 }
 
 func GetConnectionInfoPostgre() ConnectionStringPostgre {
-	homepath, _ := os.UserHomeDir()
-	pathkunci := filepath.Join(homepath, "_docker", "_app", "kunci", "SettingWeb.xml")
-	xmlFile, err := os.Open(pathkunci)
+	settingWebFile := func() (*os.File, error) {
+		if osName := runtime.GOOS; osName == "windows" {
+			return os.Open(`D:\_docker\_app\kunci\SettingWeb.xml`)
+		} else {
+			return os.Open("/_docker/_app/_kunci/SettingWeb.xml")
+		}
+	}
+
+	xmlFile, err := settingWebFile()
 	if err != nil {
 		log.SayFatalf("Failed to open SettingWeb.xml: %v", err)
 	}
-
 	defer xmlFile.Close()
 
 	byteValue, _ := io.ReadAll(xmlFile)
