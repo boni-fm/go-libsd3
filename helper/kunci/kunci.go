@@ -48,7 +48,7 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 		if osName := runtime.GOOS; osName == "windows" {
 			return os.Open(`D:\_docker\_app\kunci\SettingWeb.xml`)
 		} else {
-			return os.Open("/_docker/_app/_kunci/SettingWeb.xml")
+			return os.Open("/_docker/_app/kunci/SettingWeb.xml")
 		}
 	}
 
