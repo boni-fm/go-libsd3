@@ -15,7 +15,7 @@ import (
 var log = logging.NewLogger()
 
 func GetUserPassword(username string) {
-	db, err := dbutil.Connect()
+	db, err := dbutil.SetupConnectionDatabase()
 	if err != nil {
 		return
 	}

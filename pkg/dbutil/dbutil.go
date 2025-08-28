@@ -38,11 +38,31 @@ const POSTGRE_DBTYPE = "POSTGRE"
 
 var pgInstance *PostgreDB
 
+type DatabaseSetup struct {
+	kunciManager kunci.Kunci
+}
+
+func SetupConnectionDatabase() (*PostgreDB, error) {
+
+	var err error
+	strkunci, _ := kunci.ReadConfig("config.yaml")
+	databaseSetup := DatabaseSetup{
+		kunciManager: *kunci.NewKunci(strkunci),
+	}
+
+	// Initialize database connection
+	if pgInstance, err = databaseSetup.Connect(); err != nil {
+		log.SayError("Failed to connect to database: " + err.Error())
+		return nil, err
+	}
+	return pgInstance, nil
+}
+
 // buat initialize connection, make singleton
-func Connect() (*PostgreDB, error) {
+func (d *DatabaseSetup) Connect() (*PostgreDB, error) {
 	if pgInstance == nil {
 		oncePG.Do(func() {
-			connString := kunci.GetConnectionString(POSTGRE_DBTYPE)
+			connString := d.kunciManager.GetConnectionString(POSTGRE_DBTYPE)
 			DB, err := sql.Open("postgres", connString)
 			if err != nil {
 				log.SayError("Gagal connect ke database: " + err.Error())
@@ -81,38 +101,18 @@ func (p *PostgreDB) HealthCheck() string {
 }
 
 func (p *PostgreDB) Select(query string, args ...interface{}) (*sql.Rows, error) {
-	err := p.db.Ping()
-	if err != nil {
-		Connect()
-	}
-
 	return p.db.Query(query, args...)
 }
 
 func (p *PostgreDB) SelectScalar(query string, args ...interface{}) *sql.Row {
-	err := p.db.Ping()
-	if err != nil {
-		Connect()
-	}
-
 	return p.db.QueryRow(query, args...)
 }
 
 func (p *PostgreDB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	err := p.db.Ping()
-	if err != nil {
-		Connect()
-	}
-
 	return p.db.Exec(query, args...)
 }
 
 func (p *PostgreDB) Call(proc string, args ...interface{}) (*sql.Rows, error) {
-	err := p.db.Ping()
-	if err != nil {
-		Connect()
-	}
-
 	q := "SELECT * FROM " + proc + "("
 	for i := range args {
 		if i > 0 {
@@ -123,4 +123,8 @@ func (p *PostgreDB) Call(proc string, args ...interface{}) (*sql.Rows, error) {
 	q += ")"
 
 	return p.db.Query(q, args...)
+}
+
+func GetDB() *sql.DB {
+	return pgInstance.db
 }

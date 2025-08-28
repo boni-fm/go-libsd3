@@ -28,22 +28,21 @@ type Params struct {
 }
 
 func NewKunciClient(kunci string) *KunciClient {
-	log.Say("buat kunci client")
 	return &KunciClient{
 		httpClient: &http.Client{},
 		Kunci:      kunci,
 	}
 }
 
-func (kc *KunciClient) GetVariable(key string, pathKunci string) (string, error) {
+func (kc *KunciClient) GetVariable(key string) (string, error) {
 	kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN")
 	if kunciIpEnv != "" {
 		Baseurl = kunciIpEnv
 	}
 
 	url := "http://" + Baseurl
-	if pathKunci != "" {
-		url += "/" + pathKunci
+	if kc.Kunci != "" {
+		url += "/" + kc.Kunci
 	}
 
 	url += "/GetVariabel"

@@ -36,3 +36,13 @@ func TestLoggerDailyRotation(t *testing.T) {
 		t.Errorf("Expected log file %s to exist", logPath)
 	}
 }
+
+func TestLoggerDefault(t *testing.T) {
+	log := logging.NewLogger()
+	log.Say("Default logger test message")
+	log.Warn("Default logger warning")
+	log.Errorf("Default logger error")
+	log.SayWithField("Default logger with field", "key", "value")
+	log.SayWithFields("Default logger with fields", map[string]interface{}{"foo": 42, "bar": "baz"})
+	// No file check here, just ensure no panic and output is produced
+}

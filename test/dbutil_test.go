@@ -7,7 +7,7 @@ import (
 )
 
 func TestConnectAndClose(t *testing.T) {
-	db, err := dbutil.Connect()
+	db, err := dbutil.SetupConnectionDatabase()
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestConnectAndClose(t *testing.T) {
 }
 
 func TestHealthCheck(t *testing.T) {
-	db, err := dbutil.Connect()
+	db, err := dbutil.SetupConnectionDatabase()
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}

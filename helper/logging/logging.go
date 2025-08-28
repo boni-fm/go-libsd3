@@ -49,7 +49,7 @@ func NewLogger() *logger {
 	log := logrus.New()
 	log.SetLevel(logLevel)
 
-	appname := ""
+	appName := ""
 	homedir, _ := os.UserHomeDir()
 	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
 	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
@@ -60,14 +60,14 @@ func NewLogger() *logger {
 		MaxBackups: 3,  // amouts
 		MaxAge:     28, //days
 		Level:      logLevel,
-		Formatter:  &CustomLogFormatter{AppName: &appname},
+		Formatter:  &CustomLogFormatter{AppName: &appName},
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize file rotate hook: %v", err)
 	}
 
 	log.AddHook(rotateFileHook)
-	log.SetFormatter(&CustomLogFormatter{AppName: &appname})
+	log.SetFormatter(&CustomLogFormatter{AppName: &appName})
 
 	return &logger{log}
 }

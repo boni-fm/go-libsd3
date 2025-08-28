@@ -12,7 +12,7 @@ import (
 */
 
 func GetKodeDC() string {
-	db, err := dbutil.Connect()
+	db, err := dbutil.SetupConnectionDatabase()
 	if err != nil {
 		return ""
 	}
@@ -30,7 +30,7 @@ func GetKodeDC() string {
 }
 
 func GetDate() string {
-	db, err := dbutil.Connect()
+	db, err := dbutil.SetupConnectionDatabase()
 	if err != nil {
 		return ""
 	}

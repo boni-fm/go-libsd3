@@ -23,12 +23,11 @@ import (
 
 var log = logging.NewLogger()
 
-type SettingWeb[T ConnectionStringPostgre | ConnectionStringSQL] struct {
-	XMLName          xml.Name `xml:"SettingConfig"`
-	ConnectionString T
+type Config[T PostgreConnectionConfig] struct {
+	ConnectionConfig T
 }
 
-type ConnectionStringPostgre struct {
+type PostgreConnectionConfig struct {
 	IPPostgres       string `xml:"IPPostgres"`
 	PortPostgres     string `xml:"PortPostgres"`
 	DatabasePostgres string `xml:"DatabasePostgres"`
@@ -36,14 +35,18 @@ type ConnectionStringPostgre struct {
 	PasswordPostgres string `xml:"PasswordPostgres"`
 }
 
-type ConnectionStringSQL struct {
-	IPSql       string `xml:"IPSql"`
-	UserSql     string `xml:"UserSql"`
-	PasswordSql string `xml:"PasswordSql"`
-	DatabaseSql string `xml:"DatabaseSql"`
+type Kunci struct {
+	PostgreConfig Config[PostgreConnectionConfig]
+	KunciClient   *KunciClient
 }
 
-func GetConnectionInfoPostgre() ConnectionStringPostgre {
+func NewKunci(kuncidc string) *Kunci {
+	return &Kunci{
+		KunciClient: NewKunciClient(kuncidc),
+	}
+}
+
+func GetConnectionInfoPostgre() PostgreConnectionConfig {
 	settingWebFile := func() (*os.File, error) {
 		if osName := runtime.GOOS; osName == "windows" {
 			return os.Open(`D:\_docker\_app\kunci\SettingWeb.xml`)
@@ -59,7 +62,7 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	defer xmlFile.Close()
 
 	byteValue, _ := io.ReadAll(xmlFile)
-	var connInfo ConnectionStringPostgre
+	var connInfo PostgreConnectionConfig
 	xml.Unmarshal(byteValue, &connInfo)
 
 	if strings.Contains(connInfo.UserPostgres, "Timeout") {
@@ -69,14 +72,56 @@ func GetConnectionInfoPostgre() ConnectionStringPostgre {
 	return connInfo
 }
 
-func GetConnectionString(dbtype string) string {
+func (k *Kunci) GetConnectionString(dbtype string) string {
 	switch strings.ToUpper(dbtype) {
 	case "POSTGRE":
-		pgConnInfo := GetConnectionInfoPostgre()
+		k.SetPGConStringFromWebservice()
+		config := k.PostgreConfig
 		return fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			pgConnInfo.IPPostgres, pgConnInfo.PortPostgres, pgConnInfo.UserPostgres, pgConnInfo.PasswordPostgres, pgConnInfo.DatabasePostgres)
+			config.ConnectionConfig.IPPostgres, config.ConnectionConfig.PortPostgres, config.ConnectionConfig.UserPostgres, config.ConnectionConfig.PasswordPostgres, config.ConnectionConfig.DatabasePostgres)
 	}
 
 	return ""
+}
+
+func (k *Kunci) SetPGConStringFromWebservice() (*Kunci, error) {
+	user, err := k.KunciClient.GetVariable("UserPostgres")
+	if err != nil {
+		log.Error("Failed to get UserPostgres variable :", err)
+		return nil, err
+	}
+
+	password, err := k.KunciClient.GetVariable("PasswordPostgres")
+	if err != nil {
+		log.Error("Failed to get PasswordPostgres variable :", err)
+		return nil, err
+	}
+
+	port, err := k.KunciClient.GetVariable("PortPostgres")
+	if err != nil {
+		log.Error("Failed to get PortPostgres variable :", err)
+		return nil, err
+	}
+	ip, err := k.KunciClient.GetVariable("IPPostgres")
+	if err != nil {
+		log.Error("Failed to get IPPostgres variable :", err)
+		return nil, err
+	}
+	database, err := k.KunciClient.GetVariable("DatabasePostgres")
+	if err != nil {
+		log.Error("Failed to get DatabasePostgres variable :", err)
+		return nil, err
+	}
+
+	k.PostgreConfig = Config[PostgreConnectionConfig]{}
+	k.PostgreConfig.ConnectionConfig = PostgreConnectionConfig{
+		IPPostgres:       ip,
+		PortPostgres:     port,
+		DatabasePostgres: database,
+		UserPostgres:     user,
+		PasswordPostgres: password,
+	}
+
+	return k, nil
 }

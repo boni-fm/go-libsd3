@@ -12,7 +12,7 @@ func TestKunciClient_GetVariable_WithPathKunci(t *testing.T) {
 	// Optionally set KUNCI_IP_DOMAIN env if needed
 	// os.Setenv("KUNCI_IP_DOMAIN", "localhost")
 
-	val, err := client.GetVariable("UserPostgres", "kuncig009sim")
+	val, err := client.GetVariable("UserPostgres")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
