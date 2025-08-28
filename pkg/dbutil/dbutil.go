@@ -7,6 +7,7 @@ import (
 
 	"github.com/boni-fm/go-libsd3/helper/kunci"
 	"github.com/boni-fm/go-libsd3/helper/logging"
+	"github.com/boni-fm/go-libsd3/helper/yamlreader"
 
 	_ "github.com/lib/pq"
 )
@@ -45,9 +46,9 @@ type DatabaseSetup struct {
 func SetupConnectionDatabase() (*PostgreDB, error) {
 
 	var err error
-	strkunci, _ := kunci.ReadConfig("config.yaml")
+	strkunci, _ := yamlreader.ReadConfigDynamicWithKey("D:\\SD3\\Source Code\\_go\\go-libsd3\\config.yaml", "kunci")
 	databaseSetup := DatabaseSetup{
-		kunciManager: *kunci.NewKunci(strkunci),
+		kunciManager: *kunci.NewKunci(strkunci.(string)),
 	}
 
 	// Initialize database connection

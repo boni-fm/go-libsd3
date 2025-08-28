@@ -29,5 +29,6 @@ func TestHealthCheck(t *testing.T) {
 	if status == "" {
 		t.Error("HealthCheck returned empty string")
 	}
+	t.Logf("HealthCheck status: %s", status)
 	db.Close()
 }
