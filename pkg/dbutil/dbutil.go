@@ -82,6 +82,8 @@ func (p *PostgreDB) Close() error {
 		log.Say("Pintu koneksi database ditutup ~")
 		return p.db.Close()
 	}
+
+	pgInstance = nil
 	return nil
 }
 
