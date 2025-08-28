@@ -46,6 +46,8 @@ func NewKunci(kuncidc string) *Kunci {
 	}
 }
 
+// ini fungsi kalo mau baca langsung dari settingweb.xml
+// untuk sekarang tidak digunakan
 func GetConnectionInfoPostgre() PostgreConnectionConfig {
 	settingWebFile := func() (*os.File, error) {
 		if osName := runtime.GOOS; osName == "windows" {

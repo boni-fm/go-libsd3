@@ -2,7 +2,9 @@ package yamlreader
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -36,4 +38,23 @@ func ReadConfigDynamicWithKey(path string, key string) (interface{}, error) {
 		return nil, ErrorNullKeyValue
 	}
 	return cfg[key], nil
+}
+
+func GetKunciConfigFilepath() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			dir = filepath.Join(dir, "config.yaml")
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return "", fmt.Errorf("project root not found")
 }

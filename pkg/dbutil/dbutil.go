@@ -46,7 +46,8 @@ type DatabaseSetup struct {
 func SetupConnectionDatabase() (*PostgreDB, error) {
 
 	var err error
-	strkunci, _ := yamlreader.ReadConfigDynamicWithKey("D:\\SD3\\Source Code\\_go\\go-libsd3\\config.yaml", "kunci")
+	kuncipath, _ := yamlreader.GetKunciConfigFilepath()
+	strkunci, _ := yamlreader.ReadConfigDynamicWithKey(kuncipath, "kunci")
 	databaseSetup := DatabaseSetup{
 		kunciManager: *kunci.NewKunci(strkunci.(string)),
 	}
