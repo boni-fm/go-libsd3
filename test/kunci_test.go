@@ -50,8 +50,7 @@ func TestGetConnectionString(t *testing.T) {
 	defer os.Remove("/_docker/_app/_kunci/SettingWeb.xml")
 
 	// cara make kuncinya
-	confKunci, _ := kunci.ReadConfig("config.yaml")
-	kunciManager := kunci.NewKunci(confKunci)
+	kunciManager := kunci.NewKunci("kuncig009sim")
 	connStr := kunciManager.GetConnectionString("POSTGRE")
 
 	expected := "host=localhost port=5433 user=user2 password=pass2 dbname=db2 sslmode=disable"
