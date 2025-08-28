@@ -80,10 +80,10 @@ func (d *DatabaseSetup) Connect() (*PostgreDB, error) {
 func (p *PostgreDB) Close() error {
 	if p.db != nil {
 		log.Say("Pintu koneksi database ditutup ~")
+		pgInstance = nil
 		return p.db.Close()
 	}
 
-	pgInstance = nil
 	return nil
 }
 
