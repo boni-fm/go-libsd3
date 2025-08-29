@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/boni-fm/go-libsd3/helper/logging"
 )
@@ -22,6 +23,14 @@ import (
 */
 
 var log = logging.NewLogger()
+
+var (
+	cachedConnInfo     PostgreConnectionConfig
+	cachedConnInfoTime int64
+	cachedConnInfoOnce sync.Once
+	cachedConnInfoErr  error
+	mu                 sync.Mutex
+)
 
 type Config[T PostgreConnectionConfig] struct {
 	ConnectionConfig T
@@ -49,15 +58,26 @@ func NewKunci(kuncidc string) *Kunci {
 // ini fungsi kalo mau baca langsung dari settingweb.xml
 // untuk sekarang tidak digunakan
 func GetConnectionInfoPostgre() PostgreConnectionConfig {
-	settingWebFile := func() (*os.File, error) {
+	settingWebPath := func() string {
 		if osName := runtime.GOOS; osName == "windows" {
-			return os.Open(`D:\_docker\_app\kunci\SettingWeb.xml`)
-		} else {
-			return os.Open("/_docker/_app/kunci/SettingWeb.xml")
+			return `D:\_docker\_app\kunci\SettingWeb.xml`
 		}
+		return "/_docker/_app/kunci/SettingWeb.xml"
 	}
 
-	xmlFile, err := settingWebFile()
+	path := settingWebPath()
+	info, err := os.Stat(path)
+	if err != nil {
+		log.SayFatalf("Failed to stat SettingWeb.xml: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if cachedConnInfoTime == info.ModTime().Unix() {
+		return cachedConnInfo
+	}
+
+	xmlFile, err := os.Open(path)
 	if err != nil {
 		log.SayFatalf("Failed to open SettingWeb.xml: %v", err)
 	}
@@ -71,6 +91,8 @@ func GetConnectionInfoPostgre() PostgreConnectionConfig {
 		connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
 	}
 
+	cachedConnInfo = connInfo
+	cachedConnInfoTime = info.ModTime().Unix()
 	return connInfo
 }
 
