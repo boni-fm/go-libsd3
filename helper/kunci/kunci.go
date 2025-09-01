@@ -85,9 +85,10 @@ func GetConnectionInfoPostgre() PostgreConnectionConfig {
 	var connInfo PostgreConnectionConfig
 	xml.Unmarshal(byteValue, &connInfo)
 
-	if strings.Contains(connInfo.UserPostgres, "Timeout") {
-		connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
-	}
+	// Ini konfigurasi untuk ngilangin timeout di dalem xml nya :D
+	// if strings.Contains(connInfo.UserPostgres, "Timeout") {
+	// 	connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
+	// }
 
 	cachedConnInfo = connInfo
 	cachedConnInfoTime = info.ModTime().Unix()
