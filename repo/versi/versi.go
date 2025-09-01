@@ -71,16 +71,17 @@ func PostgreConstrBuilder(constr string) string {
 		server, database, userID, password, port string
 	)
 	for _, part := range parts {
-		if strings.HasPrefix(part, "Server=") {
-			server = strings.TrimPrefix(part, "Server=")
-		} else if strings.HasPrefix(part, "Database=") {
-			database = strings.TrimPrefix(part, "Database=")
-		} else if strings.HasPrefix(part, "User Id=") {
-			userID = strings.TrimPrefix(part, "User Id=")
-		} else if strings.HasPrefix(part, "Password=") {
-			password = strings.TrimPrefix(part, "Password=")
-		} else if strings.HasPrefix(part, "Port=") {
-			port = strings.TrimPrefix(part, "Port=")
+		part = strings.ToLower(part)
+		if strings.HasPrefix(part, "server=") {
+			server = strings.TrimPrefix(part, "server=")
+		} else if strings.HasPrefix(part, "database=") {
+			database = strings.TrimPrefix(part, "database=")
+		} else if strings.HasPrefix(part, "user id=") {
+			userID = strings.TrimPrefix(part, "user id=")
+		} else if strings.HasPrefix(part, "password=") {
+			password = strings.TrimPrefix(part, "password=")
+		} else if strings.HasPrefix(part, "port=") {
+			port = strings.TrimPrefix(part, "port=")
 		}
 	}
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", server, port, userID, password, database)
