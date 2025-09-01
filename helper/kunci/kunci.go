@@ -27,8 +27,6 @@ var log = logging.NewLogger()
 var (
 	cachedConnInfo     PostgreConnectionConfig
 	cachedConnInfoTime int64
-	cachedConnInfoOnce sync.Once
-	cachedConnInfoErr  error
 	mu                 sync.Mutex
 )
 

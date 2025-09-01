@@ -3,8 +3,10 @@ package dbutil
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"sync"
 
+	"github.com/boni-fm/go-libsd3/config"
 	"github.com/boni-fm/go-libsd3/helper/kunci"
 	"github.com/boni-fm/go-libsd3/helper/logging"
 	"github.com/boni-fm/go-libsd3/helper/yamlreader"
@@ -46,10 +48,20 @@ type DatabaseSetup struct {
 func SetupConnectionDatabase() (*PostgreDB, error) {
 
 	var err error
-	kuncipath, _ := yamlreader.GetKunciConfigFilepath()
-	strkunci, _ := yamlreader.ReadConfigDynamicWithKey(kuncipath, "kunci")
+	var strKunci string
+
+	strKunciDocker := os.Getenv(config.KeyEnvKunci)
+
+	if strKunciDocker != "" {
+		strKunci = strKunciDocker
+	} else {
+		kuncipath, _ := yamlreader.GetKunciConfigFilepath()
+		key, _ := yamlreader.ReadConfigDynamicWithKey(kuncipath, "kunci")
+		strKunci = key.(string)
+	}
+
 	databaseSetup := DatabaseSetup{
-		kunciManager: *kunci.NewKunci(strkunci.(string)),
+		kunciManager: *kunci.NewKunci(strKunci),
 	}
 
 	// Initialize database connection
