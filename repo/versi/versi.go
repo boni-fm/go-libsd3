@@ -13,6 +13,7 @@ var msgTidakTerdaftar = "Program .:%s:. belum terdaftar di Master Program DC,\r\
 
 func GetVersiProgramPostgre(Constr, Kodedc, NamaProgram, Versi, IPKomputer string) string {
 	text := strings.ReplaceAll(IPKomputer, "'", "")
+	NamaProgram = strings.ToUpper(NamaProgram)
 	Constr = PostgreConstrBuilder(Constr)
 	result := ""
 
