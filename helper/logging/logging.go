@@ -11,8 +11,6 @@ import (
 
 /*
 	TODO:
-	- perbaiki struktur log nya supaya lebih bagus wkwkwk
-	- tambahin new logger custom sesuai dengan kebutuhan aplikasi
 */
 
 type logger struct{ *logrus.Logger }
@@ -50,9 +48,8 @@ func NewLogger() *logger {
 	log.SetLevel(logLevel)
 
 	appName := ""
-	homedir, _ := os.UserHomeDir()
 	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
-	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
+	filepath := filepath.Join(string(os.PathSeparator), "var", "log", "nginx", "api", filename)
 
 	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
 		Filename:   filepath,
@@ -78,9 +75,8 @@ func NewLoggerWithFilename(AppName string) *logger {
 	log := logrus.New()
 	log.SetLevel(logLevel)
 
-	homedir, _ := os.UserHomeDir()
 	filename := "logs" + AppName + time.Now().Format("2006-01-02") + ".log"
-	filepath := filepath.Join(homedir, "_docker", "_app", "logs", filename)
+	filepath := filepath.Join(string(os.PathSeparator), "var", "log", "nginx", "api", filename)
 
 	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
 		Filename:   filepath,
