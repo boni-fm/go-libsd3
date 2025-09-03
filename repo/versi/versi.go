@@ -3,6 +3,7 @@ package versi
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -67,23 +68,27 @@ func GetVersiProgramPostgre(Constr, Kodedc, NamaProgram, Versi, IPKomputer strin
 }
 
 func PostgreConstrBuilder(constr string) string {
-	parts := strings.Split(constr, ";")
 	var (
 		server, database, userID, password, port string
 	)
-	for _, part := range parts {
-		part = strings.ToLower(part)
-		if strings.HasPrefix(part, "server=") {
-			server = strings.TrimPrefix(part, "server=")
-		} else if strings.HasPrefix(part, "database=") {
-			database = strings.TrimPrefix(part, "database=")
-		} else if strings.HasPrefix(part, "user id=") {
-			userID = strings.TrimPrefix(part, "user id=")
-		} else if strings.HasPrefix(part, "password=") {
-			password = strings.TrimPrefix(part, "password=")
-		} else if strings.HasPrefix(part, "port=") {
-			port = strings.TrimPrefix(part, "port=")
+
+	regexCompiler := regexp.MustCompile(`(?i)(Server|Port|Database|User Id|Timeout|Command Timeout|Password)\s*=\s*([^;]+)`)
+	varMatches := regexCompiler.FindAllStringSubmatch(constr, -1)
+
+	for _, match := range varMatches {
+		switch strings.ToLower(match[1]) {
+		case "server":
+			server = strings.TrimSpace(match[2])
+		case "port":
+			port = strings.TrimSpace(match[2])
+		case "database":
+			database = strings.TrimSpace(match[2])
+		case "user id":
+			userID = strings.TrimSpace(match[2])
+		case "password":
+			password = strings.TrimSpace(match[2])
 		}
 	}
+
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", server, port, userID, password, database)
 }
