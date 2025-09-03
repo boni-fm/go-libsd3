@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/boni-fm/go-libsd3/helper/kunci"
+	"github.com/boni-fm/go-libsd3/helper/settinglibgooo"
 )
 
 func TestGetConnectionInfoPostgre(t *testing.T) {
@@ -28,7 +28,7 @@ func TestGetConnectionInfoPostgre(t *testing.T) {
 	os.WriteFile(filePath, []byte(xmlContent), 0644)
 	defer os.Remove(filePath)
 
-	conn := kunci.GetConnectionInfoPostgre()
+	conn := settinglibgooo.GetConnectionInfoPostgre()
 	if conn.IPPostgres == "" {
 		t.Errorf("Unexpected connection info: %+v", conn)
 	}
@@ -50,7 +50,7 @@ func TestGetConnectionString(t *testing.T) {
 	defer os.Remove("/_docker/_app/_kunci/SettingWeb.xml")
 
 	// cara make kuncinya
-	kunciManager := kunci.NewKunci("kuncig009sim")
+	kunciManager := settinglibgooo.NewSettingLib("kuncig009sim")
 	connStr := kunciManager.GetConnectionString("POSTGRE")
 
 	expected := "host=localhost port=5433 user=user2 password=pass2 dbname=db2 sslmode=disable"

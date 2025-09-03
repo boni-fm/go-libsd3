@@ -1,4 +1,4 @@
-package kunci
+package settinglibgooo
 
 import (
 	"os"
@@ -19,7 +19,7 @@ func GetConnStringDockerPostgre(tipe string) string {
 		strKunci = key.(string)
 	}
 
-	key := NewKunci(strKunci)
+	key := NewSettingLib(strKunci)
 	ConStr := key.GetConnectionString(tipe)
 	return ConStr
 }

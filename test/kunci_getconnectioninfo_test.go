@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/boni-fm/go-libsd3/helper/kunci"
+	"github.com/boni-fm/go-libsd3/helper/settinglibgooo"
 )
 
 func TestGetConnectionInfoPostgreE(t *testing.T) {
@@ -33,7 +33,7 @@ func TestGetConnectionInfoPostgreE(t *testing.T) {
 	os.WriteFile(xmlPath, []byte(xmlContent), 0644)
 	defer os.Remove(xmlPath)
 
-	conn := kunci.GetConnectionInfoPostgre()
+	conn := settinglibgooo.GetConnectionInfoPostgre()
 	if conn.IPPostgres != "127.0.0.1" || conn.PortPostgres != "5432" || conn.DatabasePostgres != "testdb" || conn.UserPostgres != "testuser" || conn.PasswordPostgres != "testpass" {
 		t.Logf("Unexpected connection info: %+v", conn)
 	}

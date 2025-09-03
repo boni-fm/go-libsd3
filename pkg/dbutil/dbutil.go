@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/boni-fm/go-libsd3/config"
-	"github.com/boni-fm/go-libsd3/helper/kunci"
 	"github.com/boni-fm/go-libsd3/helper/logging"
+	"github.com/boni-fm/go-libsd3/helper/settinglibgooo"
 	"github.com/boni-fm/go-libsd3/helper/yamlreader"
 
 	_ "github.com/lib/pq"
@@ -42,7 +42,7 @@ const POSTGRE_DBTYPE = "POSTGRE"
 var pgInstance *PostgreDB
 
 type DatabaseSetup struct {
-	kunciManager kunci.Kunci
+	kunciManager settinglibgooo.Kunci
 }
 
 func SetupConnectionDatabase() (*PostgreDB, error) {
@@ -61,7 +61,7 @@ func SetupConnectionDatabase() (*PostgreDB, error) {
 	}
 
 	databaseSetup := DatabaseSetup{
-		kunciManager: *kunci.NewKunci(strKunci),
+		kunciManager: *settinglibgooo.NewSettingLib(strKunci),
 	}
 
 	// Initialize database connection

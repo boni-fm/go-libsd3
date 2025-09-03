@@ -1,4 +1,4 @@
-package kunci
+package settinglibgooo
 
 import (
 	"encoding/xml"
@@ -14,15 +14,10 @@ import (
 
 /*
 	TODO:
-	- Implementasi ambil sql constring dari settingweb.xml
-	- buat supaya bisa baca settingwebgxxx.xml, sekarang masih bisa 1 doang
 	- sesuain kalo udh bisa baca gxxx ke dalam dbutil
-
-	TODO: Difficulty >> HARD!!
-	- set kunci dari GetVariable mirip dengan SettingLibb punya .net pak edwin
 */
 
-var log = logging.NewLogger()
+var log = logging.NewLoggerWithFilename("db-setup")
 
 var (
 	cachedConnInfo     PostgreConnectionConfig
@@ -43,13 +38,13 @@ type PostgreConnectionConfig struct {
 }
 
 type Kunci struct {
-	PostgreConfig Config[PostgreConnectionConfig]
-	KunciClient   *KunciClient
+	PostgreConfig    Config[PostgreConnectionConfig]
+	SettingWebClient *SettingLibClient
 }
 
-func NewKunci(kuncidc string) *Kunci {
+func NewSettingLib(kuncidc string) *Kunci {
 	return &Kunci{
-		KunciClient: NewKunciClient(kuncidc),
+		SettingWebClient: NewSettingLibClient(kuncidc),
 	}
 }
 
@@ -109,29 +104,29 @@ func (k *Kunci) GetConnectionString(dbtype string) string {
 }
 
 func (k *Kunci) SetPGConStringFromWebservice() (*Kunci, error) {
-	user, err := k.KunciClient.GetVariable("UserPostgres")
+	user, err := k.SettingWebClient.GetVariable("UserPostgres")
 	if err != nil {
 		log.Error("Failed to get UserPostgres variable :", err)
 		return nil, err
 	}
 
-	password, err := k.KunciClient.GetVariable("PasswordPostgres")
+	password, err := k.SettingWebClient.GetVariable("PasswordPostgres")
 	if err != nil {
 		log.Error("Failed to get PasswordPostgres variable :", err)
 		return nil, err
 	}
 
-	port, err := k.KunciClient.GetVariable("PortPostgres")
+	port, err := k.SettingWebClient.GetVariable("PortPostgres")
 	if err != nil {
 		log.Error("Failed to get PortPostgres variable :", err)
 		return nil, err
 	}
-	ip, err := k.KunciClient.GetVariable("IPPostgres")
+	ip, err := k.SettingWebClient.GetVariable("IPPostgres")
 	if err != nil {
 		log.Error("Failed to get IPPostgres variable :", err)
 		return nil, err
 	}
-	database, err := k.KunciClient.GetVariable("DatabasePostgres")
+	database, err := k.SettingWebClient.GetVariable("DatabasePostgres")
 	if err != nil {
 		log.Error("Failed to get DatabasePostgres variable :", err)
 		return nil, err

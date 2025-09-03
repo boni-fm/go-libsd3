@@ -1,4 +1,4 @@
-package kunci
+package settinglibgooo
 
 import (
 	"bytes"
@@ -12,37 +12,36 @@ import (
 
 /*
 	TODO:
-	- buat GetVariable baca info constring dari kunci, miripin dengan settinglibb
 */
 
 var prefix = "mujiyono"
 var Baseurl = "localhost"
 
-type KunciClient struct {
+type SettingLibClient struct {
 	httpClient *http.Client
-	Kunci      string
+	key        string
 }
 
 type Params struct {
 	Key string `json:"key"`
 }
 
-func NewKunciClient(kunci string) *KunciClient {
-	return &KunciClient{
+func NewSettingLibClient(kunci string) *SettingLibClient {
+	return &SettingLibClient{
 		httpClient: &http.Client{},
-		Kunci:      kunci,
+		key:        kunci,
 	}
 }
 
-func (kc *KunciClient) GetVariable(key string) (string, error) {
+func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 	kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN")
 	if kunciIpEnv != "" {
 		Baseurl = kunciIpEnv
 	}
 
 	url := "http://" + Baseurl
-	if kc.Kunci != "" {
-		url += "/" + kc.Kunci
+	if kc.key != "" {
+		url += "/" + kc.key
 	}
 
 	url += "/GetVariabel"
