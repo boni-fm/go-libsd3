@@ -7,8 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/boni-fm/go-libsd3/helper/logging"
 	_ "github.com/lib/pq"
 )
+
+var log = logging.NewLoggerWithFilename("cek-versi-kunci")
 
 var msgTidakTerdaftar = "Program .:%s:. belum terdaftar di Master Program DC,\r\n              Segera Hubungi \r\n        --=::>> SUPPORT <<::=-- "
 
@@ -20,7 +23,8 @@ func GetVersiProgramPostgre(Constr, Kodedc, NamaProgram, Versi, IPKomputer strin
 
 	db, err := sql.Open("postgres", Constr)
 	if err != nil {
-		return "koneksi db gagal!"
+		log.SayErrorf("Failed to open DB connection: %v", err)
+		return "Koneksi DB Gagal..."
 	}
 	defer db.Close()
 
@@ -34,15 +38,18 @@ func GetVersiProgramPostgre(Constr, Kodedc, NamaProgram, Versi, IPKomputer strin
 		WHERE Dc_KODE=$1 and UPPER(Nama_Prog)=$2`
 	err = db.QueryRow(queryVersi, Kodedc, strings.ToUpper(NamaProgram)).Scan(&result)
 	if err != nil {
+		log.SayErrorf("Failed to execute query: %v", err)
 		return fmt.Sprintf(msgTidakTerdaftar, strings.ToUpper(NamaProgram))
 	}
 
 	versiDB, err := strconv.Atoi(strings.ReplaceAll(strings.TrimSpace(result), ".", ""))
 	if err != nil {
+		log.SayErrorf("Failed to convert DB version to int: %v", err)
 		return fmt.Sprintf(msgTidakTerdaftar, strings.ToUpper(NamaProgram))
 	}
 	versi, err := strconv.Atoi(strings.ReplaceAll(strings.TrimSpace(Versi), ".", ""))
 	if err != nil {
+		log.SayErrorf("Failed to convert input version to int: %v", err)
 		return fmt.Sprintf(msgTidakTerdaftar, strings.ToUpper(NamaProgram))
 	}
 
@@ -60,6 +67,7 @@ func GetVersiProgramPostgre(Constr, Kodedc, NamaProgram, Versi, IPKomputer strin
 		`
 		_, err := db.Exec(queryInsMonitor, Kodedc, strings.ToUpper(NamaProgram), text, versi)
 		if err != nil {
+			log.SayErrorf("Failed to insert monitoring record: %v", err)
 			return fmt.Sprintf("    Program .:%s:. Gagal mencatat aktivitas monitor.\r\n", strings.ToUpper(NamaProgram))
 		}
 	}
