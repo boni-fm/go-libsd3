@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/boni-fm/go-libsd3/config"
 	"github.com/boni-fm/go-libsd3/helper/logging"
 )
 
@@ -53,9 +54,9 @@ func NewSettingLib(kuncidc string) *Kunci {
 func GetConnectionInfoPostgre() PostgreConnectionConfig {
 	settingWebPath := func() string {
 		if osName := runtime.GOOS; osName == "windows" {
-			return `D:\_docker\_app\kunci\SettingWeb.xml`
+			return config.FILEPATH_SETTINGWEB_WINDOWS
 		}
-		return "/_docker/_app/kunci/SettingWeb.xml"
+		return config.FILEPATH_SETTINGWEB_LINUX
 	}
 
 	path := settingWebPath()

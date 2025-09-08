@@ -9,7 +9,7 @@ import (
 
 func GetConnStringDockerPostgre(tipe string) string {
 	var strKunci string
-	strKunciDocker := os.Getenv(config.KeyEnvKunci)
+	strKunciDocker := os.Getenv(config.KEY_ENV_KUNCI)
 
 	if strKunciDocker != "" {
 		strKunci = strKunciDocker

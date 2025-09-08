@@ -1,17 +1,14 @@
 package logging
 
 import (
-	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
+	"github.com/boni-fm/go-libsd3/config"
 	"github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
 )
-
-/*
-	TODO:
-*/
 
 type logger struct{ *logrus.Logger }
 
@@ -42,55 +39,60 @@ func (l *logger) SayErrorf(fmt string, args ...interface{}) {
 }
 
 func NewLogger() *logger {
-
-	logLevel := logrus.InfoLevel
 	log := logrus.New()
-	log.SetLevel(logLevel)
+	log.SetLevel(logrus.InfoLevel)
 
-	appName := ""
-	filename := "logs" + time.Now().Format("2006-01-02") + ".log"
-	filepath := filepath.Join(string(os.PathSeparator), "var", "log", "nginx", "api", filename)
+	filename := generateLogFilename("")
+	filepath := filepath.Join(getLogFilePath(), filename)
 
-	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   filepath,
-		MaxSize:    50, // megabytes
-		MaxBackups: 3,  // amouts
-		MaxAge:     28, //days
-		Level:      logLevel,
-		Formatter:  &CustomLogFormatter{AppName: &appName},
-	})
-	if err != nil {
-		log.Fatalf("Failed to initialize file rotate hook: %v", err)
-	}
-
+	rotateFileHook := generateRotateFileHook(filepath, "")
 	log.AddHook(rotateFileHook)
-	log.SetFormatter(&CustomLogFormatter{AppName: &appName})
 
 	return &logger{log}
 }
 
 func NewLoggerWithFilename(AppName string) *logger {
-
-	logLevel := logrus.InfoLevel
 	log := logrus.New()
-	log.SetLevel(logLevel)
+	log.SetLevel(logrus.InfoLevel)
 
-	filename := "logs" + AppName + time.Now().Format("2006-01-02") + ".log"
-	filepath := filepath.Join(string(os.PathSeparator), "var", "log", "nginx", "api", filename)
+	filename := generateLogFilename(AppName)
+	filepath := filepath.Join(getLogFilePath(), filename)
 
-	rotateFileHook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
+	rotateFileHook := generateRotateFileHook(filepath, AppName)
+	log.AddHook(rotateFileHook)
+
+	return &logger{log}
+}
+
+// fungsi setup loggernya
+func getLogFilePath() string {
+	if runtime.GOOS == "windows" {
+		return config.FILEPATH_LOG_WINDOWS
+	}
+	return config.FILEPATH_LOG_LINUX
+}
+
+func generateLogFilename(appName string) string {
+	dateStr := time.Now().Format(config.DATE_FORMAT)
+	if appName != "" {
+		return "logs_" + appName + "_" + dateStr + ".log"
+	}
+	return "logs_" + dateStr + ".log"
+}
+
+func generateRotateFileHook(filepath, appName string) *rotatefilehook.RotateFileHook {
+	hook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
 		Filename:   filepath,
 		MaxSize:    50, // megabytes
 		MaxBackups: 3,  // amouts
 		MaxAge:     28, //days
-		Level:      logLevel,
-		Formatter:  &CustomLogFormatter{AppName: &AppName},
+		Level:      logrus.InfoLevel,
+		Formatter:  &CustomLogFormatter{AppName: &appName},
 	})
+
 	if err != nil {
-		log.Fatalf("Failed to initialize file rotate hook: %v", err)
+		panic(err)
 	}
 
-	log.AddHook(rotateFileHook)
-
-	return &logger{log}
+	return hook.(*rotatefilehook.RotateFileHook)
 }

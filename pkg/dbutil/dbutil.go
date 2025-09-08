@@ -16,7 +16,7 @@ import (
 
 /*
 	TODO:
-	- buat class nya jadi singleton
+	- buat class nya jaddi multiple instance
 */
 
 type IDatabase interface {
@@ -37,8 +37,6 @@ var oncePG sync.Once
 
 var log = logging.NewLogger()
 
-const POSTGRE_DBTYPE = "POSTGRE"
-
 var pgInstance *PostgreDB
 
 type DatabaseSetup struct {
@@ -50,7 +48,7 @@ func SetupConnectionDatabase() (*PostgreDB, error) {
 	var err error
 	var strKunci string
 
-	strKunciDocker := os.Getenv(config.KeyEnvKunci)
+	strKunciDocker := os.Getenv(config.KEY_ENV_KUNCI)
 
 	if strKunciDocker != "" {
 		strKunci = strKunciDocker
@@ -76,7 +74,7 @@ func SetupConnectionDatabase() (*PostgreDB, error) {
 func (d *DatabaseSetup) Connect() (*PostgreDB, error) {
 	if pgInstance == nil {
 		oncePG.Do(func() {
-			connString := d.kunciManager.GetConnectionString(POSTGRE_DBTYPE)
+			connString := d.kunciManager.GetConnectionString(config.DBTYPE_POSTGRE)
 			DB, err := sql.Open("postgres", connString)
 			if err != nil {
 				log.SayError("Gagal connect ke database: " + err.Error())

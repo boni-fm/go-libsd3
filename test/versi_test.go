@@ -7,7 +7,6 @@ import (
 )
 
 func TestGetVersiProgramPostgre(t *testing.T) {
-	// These are dummy values for testing string logic only
 	Constr := "Kamu mau tau ya ehehehe..."
 	Kodedc := "6969"
 	NamaProgram := "Word.exe"
