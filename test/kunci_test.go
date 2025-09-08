@@ -28,8 +28,8 @@ func TestGetConnectionInfoPostgre(t *testing.T) {
 	os.WriteFile(filePath, []byte(xmlContent), 0644)
 	defer os.Remove(filePath)
 
-	conn := settinglibgooo.GetConnectionInfoBySettingWebXML()
-	if conn.IPPostgres == "" {
+	conn := settinglibgooo.DynamicSettingWebXMLReader("ippostgres")
+	if conn == "" {
 		t.Errorf("Unexpected connection info: %+v", conn)
 	}
 }

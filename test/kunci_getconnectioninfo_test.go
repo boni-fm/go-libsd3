@@ -33,12 +33,13 @@ func TestGetConnectionInfoPostgreE(t *testing.T) {
 	os.WriteFile(xmlPath, []byte(xmlContent), 0644)
 	defer os.Remove(xmlPath)
 
-	conn := settinglibgooo.GetConnectionInfoBySettingWebXML()
-	if conn.IPPostgres != "127.0.0.1" ||
-		conn.PortPostgres != "5432" ||
-		conn.UserPostgres != "testuser" ||
-		conn.DatabasePostgres != "testdb" ||
-		conn.PasswordPostgres != "testpass" {
-		t.Logf("Unexpected connection info: %+v", conn)
-	}
+	conn := settinglibgooo.DynamicSettingWebXMLReader("userpostgres")
+	t.Logf("Connection Info: %+v", conn)
+	// if conn.IPPostgres != "127.0.0.1" ||
+	// 	conn.PortPostgres != "5432" ||
+	// 	conn.UserPostgres != "testuser" ||
+	// 	conn.DatabasePostgres != "testdb" ||
+	// 	conn.PasswordPostgres != "testpass" {
+	// 	t.Logf("Unexpected connection info: %+v", conn)
+	// }
 }

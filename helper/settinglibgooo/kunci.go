@@ -22,7 +22,7 @@ import (
 var log = logging.NewLoggerWithFilename("db-setup")
 
 var (
-	cachedConnInfo     DBConfig
+	cachedConnInfo     Node
 	cachedConnInfoTime int64
 	mu                 sync.Mutex
 )
@@ -69,9 +69,14 @@ func NewSettingLib(kuncidc string) *Kunci {
 	}
 }
 
-// ini fungsi kalo mau baca langsung dari settingweb.xml
-// untuk sekarang tidak digunakan
-func GetConnectionInfoBySettingWebXML() DBConfig {
+type Node struct {
+	XMLName  xml.Name
+	Attrs    []xml.Attr `xml:"-"`
+	Children []Node     `xml:",any"`
+	Text     string     `xml:",chardata"`
+}
+
+func DynamicSettingWebXMLReader(key string) string {
 	settingWebPath := func() string {
 		if osName := runtime.GOOS; osName == "windows" {
 			return config.FILEPATH_SETTINGWEB_WINDOWS
@@ -88,7 +93,11 @@ func GetConnectionInfoBySettingWebXML() DBConfig {
 	mu.Lock()
 	defer mu.Unlock()
 	if cachedConnInfoTime == info.ModTime().Unix() {
-		return cachedConnInfo
+		for _, child := range cachedConnInfo.Children {
+			if strings.EqualFold(child.XMLName.Local, key) {
+				return child.Text
+			}
+		}
 	}
 
 	xmlFile, err := os.Open(path)
@@ -98,18 +107,63 @@ func GetConnectionInfoBySettingWebXML() DBConfig {
 	defer xmlFile.Close()
 
 	byteValue, _ := io.ReadAll(xmlFile)
-	var connInfo DBConfig
-	xml.Unmarshal(byteValue, &connInfo)
+	var xmlNode Node
+	xml.Unmarshal(byteValue, &xmlNode)
 
-	// Ini konfigurasi untuk ngilangin timeout di dalem xml nya :D
-	// if strings.Contains(connInfo.UserPostgres, "Timeout") {
-	// 	connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
-	// }
+	for _, child := range xmlNode.Children {
+		if strings.EqualFold(strings.ToLower(child.XMLName.Local), strings.ToLower(key)) {
+			return child.Text
+		}
+	}
 
-	cachedConnInfo = connInfo
+	cachedConnInfo = xmlNode
 	cachedConnInfoTime = info.ModTime().Unix()
-	return connInfo
+
+	return ""
 }
+
+// TODO : BERSIHIN FUNGSI INI ...
+// ini fungsi kalo mau baca langsung dari settingweb.xml
+// untuk sekarang tidak digunakan
+// func GetConnectionInfoBySettingWebXML() Node {
+// 	settingWebPath := func() string {
+// 		if osName := runtime.GOOS; osName == "windows" {
+// 			return config.FILEPATH_SETTINGWEB_WINDOWS
+// 		}
+// 		return config.FILEPATH_SETTINGWEB_LINUX
+// 	}
+
+// 	path := settingWebPath()
+// 	info, err := os.Stat(path)
+// 	if err != nil {
+// 		log.SayFatalf("Failed to stat SettingWeb.xml: %v", err)
+// 	}
+
+// 	mu.Lock()
+// 	defer mu.Unlock()
+// 	if cachedConnInfoTime == info.ModTime().Unix() {
+// 		return cachedConnInfo
+// 	}
+
+// 	xmlFile, err := os.Open(path)
+// 	if err != nil {
+// 		log.SayFatalf("Failed to open SettingWeb.xml: %v", err)
+// 	}
+// 	defer xmlFile.Close()
+
+// 	byteValue, _ := io.ReadAll(xmlFile)
+// 	var connInfo Node
+// 	xml.Unmarshal(byteValue, &connInfo)
+
+// 	// Ini konfigurasi untuk ngilangin timeout di dalem xml nya :D
+// 	// if strings.Contains(connInfo.UserPostgres, "Timeout") {
+// 	// 	connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
+// 	// }
+
+// 	cachedConnInfo = connInfo
+// 	cachedConnInfoTime = info.ModTime().Unix()
+// 	return connInfo
+// }
 
 func (k *Kunci) GetConnectionString(dbtype string) string {
 	switch strings.ToUpper(dbtype) {
