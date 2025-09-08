@@ -21,12 +21,12 @@ import (
 var log = logging.NewLoggerWithFilename("db-setup")
 
 var (
-	cachedConnInfo     PostgreConnectionConfig
+	cachedConnInfo     DBConfig
 	cachedConnInfoTime int64
 	mu                 sync.Mutex
 )
 
-type Config[T PostgreConnectionConfig] struct {
+type Config[T PostgreConnectionConfig | SqlConnectionConfig] struct {
 	ConnectionConfig T
 }
 
@@ -36,6 +36,18 @@ type PostgreConnectionConfig struct {
 	DatabasePostgres string `xml:"DatabasePostgres"`
 	UserPostgres     string `xml:"UserPostgres"`
 	PasswordPostgres string `xml:"PasswordPostgres"`
+}
+
+type SqlConnectionConfig struct {
+	IPSql       string `xml:"IPSql"`
+	UserSql     string `xml:"UserSql"`
+	PasswordSql string `xml:"PasswordSql"`
+	DatabaseSql string `xml:"DatabaseSql"`
+}
+
+type DBConfig struct {
+	PostgreConnectionConfig
+	SqlConnectionConfig
 }
 
 type Kunci struct {
@@ -51,7 +63,7 @@ func NewSettingLib(kuncidc string) *Kunci {
 
 // ini fungsi kalo mau baca langsung dari settingweb.xml
 // untuk sekarang tidak digunakan
-func GetConnectionInfoPostgre() PostgreConnectionConfig {
+func GetConnectionInfoBySettingWebXML() DBConfig {
 	settingWebPath := func() string {
 		if osName := runtime.GOOS; osName == "windows" {
 			return config.FILEPATH_SETTINGWEB_WINDOWS
@@ -78,7 +90,7 @@ func GetConnectionInfoPostgre() PostgreConnectionConfig {
 	defer xmlFile.Close()
 
 	byteValue, _ := io.ReadAll(xmlFile)
-	var connInfo PostgreConnectionConfig
+	var connInfo DBConfig
 	xml.Unmarshal(byteValue, &connInfo)
 
 	// Ini konfigurasi untuk ngilangin timeout di dalem xml nya :D
