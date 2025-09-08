@@ -16,6 +16,7 @@ import (
 /*
 	TODO:
 	- sesuain kalo udh bisa baca gxxx ke dalam dbutil
+	- buat dokumentasi
 */
 
 var log = logging.NewLoggerWithFilename("db-setup")
@@ -45,9 +46,16 @@ type SqlConnectionConfig struct {
 	DatabaseSql string `xml:"DatabaseSql"`
 }
 
+type OthersConfig struct {
+	Antrian      string `xml:"Antrian"`
+	Com          string `xml:"Com"`
+	JenisPrinter string `xml:"JenisPrinter"`
+}
+
 type DBConfig struct {
 	PostgreConnectionConfig
 	SqlConnectionConfig
+	OthersConfig
 }
 
 type Kunci struct {
