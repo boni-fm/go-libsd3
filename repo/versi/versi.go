@@ -80,11 +80,13 @@ func PostgreConstrBuilder(constr string) string {
 		server, database, userID, password, port string
 	)
 
-	regexCompiler := regexp.MustCompile(`(?i)(Server|Port|Database|User Id|Password)\s*=\s*([^;]+)`)
+	regexCompiler := regexp.MustCompile(`(?i)(Server|Host|Port|Database|User Id|Password)\s*=\s*([^;]+)`)
 	varMatches := regexCompiler.FindAllStringSubmatch(constr, -1)
 
 	for _, match := range varMatches {
 		switch strings.ToLower(match[1]) {
+		case "host":
+			server = strings.TrimSpace(match[2])
 		case "server":
 			server = strings.TrimSpace(match[2])
 		case "port":
