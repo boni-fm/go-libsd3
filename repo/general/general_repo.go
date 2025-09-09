@@ -22,7 +22,7 @@ func GetKodeDC() string {
 	// defer db.Close()
 
 	var kodeDC string
-	row := db.SelectScalar("SELECT TBL_DC_KODE FROM DC_DC_TABEL_DC_T")
+	row := db.SelectScalar("SELECT TBL_DC_KODE FROM DC_TABEL_DC_T")
 	if row != nil {
 		kodeDC = fmt.Sprintf("%v", row)
 	}
