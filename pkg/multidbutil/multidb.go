@@ -21,64 +21,75 @@ var (
 )
 
 type DBConfig struct {
-	Client *settinglibgooo.Kunci
-	DB     *sql.DB
-	Log    *logrus.Logger
+	Client     *settinglibgooo.Kunci
+	DB         *sql.DB
+	Log        *logrus.Logger
+	ConnString string
 }
 
 type MultiDB struct {
 	KodeDC  string
 	Configs map[string]*DBConfig
-	once    sync.Once
+	mu      sync.Mutex
 }
 
-// var (
-// 	dbInstances = make(map[string]*MultiDB)
-// 	mutex       = &sync.Mutex{}
-// )
+func (m *MultiDB) SetupMultiDB(kodedc string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-func (m *MultiDB) SetupMultiDB(kodedc string) {
 	if m.Configs == nil {
 		m.Configs = make(map[string]*DBConfig)
 	}
 
-	m.once.Do(func() {
-		if m.Configs[kodedc] == nil {
-			client := settinglibgooo.NewSettingLib(PREFIX_KUNCI + strings.ToLower(kodedc))
-			connStr := client.GetConnectionString("POSTGRE")
-			log := logrus.New()
-			db, err := sql.Open("postgres", connStr)
-			if err != nil {
-				log.Errorf("Error connecting to database for %s: %v", kodedc, err)
-				return
-			}
-
-			// di ping buat mastiin koneksinya lagi
-			if err = db.Ping(); err != nil {
-				log.Errorf("Error pinging database for %s: %v", kodedc, err)
-				return
-			}
-
-			m.Configs[kodedc] = &DBConfig{
-				Client: client,
-				DB:     db,
-				Log:    log,
-			}
+	if m.Configs[kodedc] == nil {
+		client := settinglibgooo.NewSettingLib(PREFIX_KUNCI + strings.ToLower(kodedc))
+		connStr := client.GetConnectionString("POSTGRE")
+		log := logrus.New()
+		db, err := sql.Open("postgres", connStr)
+		if err != nil {
+			log.Errorf("Error connecting to database for %s: %v", kodedc, err)
+			return err
 		}
-	})
+
+		// di ping buat mastiin koneksinya lagi
+		if err = db.Ping(); err != nil {
+			log.Errorf("Error pinging database for %s: %v", kodedc, err)
+			return err
+		}
+
+		m.Configs[kodedc] = &DBConfig{
+			Client:     client,
+			DB:         db,
+			Log:        log,
+			ConnString: connStr,
+		}
+
+		return nil
+	}
+	return nil
 }
 
 func (m *MultiDB) GetDB(kodedc string) (*sql.DB, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.Configs[kodedc] == nil {
-		m.SetupMultiDB(kodedc)
+		err := m.SetupMultiDB(kodedc)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	if m.Configs[kodedc] != nil {
 		return m.Configs[kodedc].DB, nil
 	}
-	return nil, fmt.Errorf("database not initialized for %s", kodedc)
+
+	return nil, fmt.Errorf("terdapat kesalahan saat mencoba mengakses database %s", kodedc)
 }
 
 func (m *MultiDB) CloseAllConnection() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	for kodedc, config := range m.Configs {
 		if config.DB != nil {
 			if err := config.DB.Close(); err != nil {
@@ -91,10 +102,18 @@ func (m *MultiDB) CloseAllConnection() {
 }
 
 func (m *MultiDB) SelectScalarByKodedc(kodedc, query string, args ...interface{}) (result interface{}, err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.Configs[kodedc] == nil {
+		return nil, fmt.Errorf("database configuration for %s not found", kodedc)
+	}
+
 	err = m.Configs[kodedc].DB.QueryRow(query, args...).Scan(&result)
 	if err != nil {
 		m.Configs[kodedc].Log.Errorf("Error executing query for %s: %v", kodedc, err)
 		return nil, err
 	}
+
 	return result, nil
 }
