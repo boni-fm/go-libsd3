@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/boni-fm/go-libsd3/helper/logging"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
@@ -41,7 +41,7 @@ type ProducerStats struct {
 }
 
 // NewProducer creates a new Kafka producer with the given configuration
-func NewProducer(config *ProducerConfig, logger *logrus.Logger) (*Producer, error) {
+func NewProducer(config *ProducerConfig, logger *logging.Logger) (*Producer, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}

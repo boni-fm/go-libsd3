@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sirupsen/logrus"
+	"github.com/boni-fm/go-libsd3/helper/logging"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,7 +62,7 @@ func validateConfig(config *ProducerConfig) error {
 }
 
 // NewProducerFromYAML creates a new producer from YAML configuration file
-func NewProducerFromYAML(filePath string, logger *logrus.Logger) (*Producer, error) {
+func NewProducerFromYAML(filePath string, logger *logging.Logger) (*Producer, error) {
 	config, err := LoadConfigFromYAML(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config from YAML: %w", err)
@@ -72,7 +72,7 @@ func NewProducerFromYAML(filePath string, logger *logrus.Logger) (*Producer, err
 }
 
 // NewProducerFromYAMLBytes creates a new producer from YAML bytes
-func NewProducerFromYAMLBytes(yamlData []byte, logger *logrus.Logger) (*Producer, error) {
+func NewProducerFromYAMLBytes(yamlData []byte, logger *logging.Logger) (*Producer, error) {
 	config, err := ParseYAMLConfig(yamlData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
