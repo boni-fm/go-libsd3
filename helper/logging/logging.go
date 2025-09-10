@@ -10,35 +10,35 @@ import (
 	"github.com/snowzach/rotatefilehook"
 )
 
-type logger struct{ *logrus.Logger }
+type Logger struct{ *logrus.Logger }
 
-func (l *logger) Say(msg string) {
+func (l *Logger) Say(msg string) {
 	l.Info(msg)
 }
-func (l *logger) Sayf(fmt string, args ...interface{}) {
+func (l *Logger) Sayf(fmt string, args ...interface{}) {
 	l.Infof(fmt, args...)
 }
-func (l *logger) SayWithField(msg string, k string, v interface{}) {
+func (l *Logger) SayWithField(msg string, k string, v interface{}) {
 	l.WithField(k, v).Info(msg)
 }
-func (l *logger) SayWithFields(msg string, fields map[string]interface{}) {
+func (l *Logger) SayWithFields(msg string, fields map[string]interface{}) {
 	l.WithFields(fields).Info(msg)
 }
 
-func (l *logger) SayFatal(msg string) {
+func (l *Logger) SayFatal(msg string) {
 	l.Fatal(msg)
 }
-func (l *logger) SayFatalf(fmt string, args ...interface{}) {
+func (l *Logger) SayFatalf(fmt string, args ...interface{}) {
 	l.Fatalf(fmt, args...)
 }
-func (l *logger) SayError(msg string) {
+func (l *Logger) SayError(msg string) {
 	l.Error(msg)
 }
-func (l *logger) SayErrorf(fmt string, args ...interface{}) {
+func (l *Logger) SayErrorf(fmt string, args ...interface{}) {
 	l.Errorf(fmt, args...)
 }
 
-func NewLogger() *logger {
+func NewLogger() *Logger {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
@@ -48,10 +48,10 @@ func NewLogger() *logger {
 	rotateFileHook := generateRotateFileHook(filepath, "")
 	log.AddHook(rotateFileHook)
 
-	return &logger{log}
+	return &Logger{log}
 }
 
-func NewLoggerWithFilename(AppName string) *logger {
+func NewLoggerWithFilename(AppName string) *Logger {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
@@ -61,10 +61,10 @@ func NewLoggerWithFilename(AppName string) *logger {
 	rotateFileHook := generateRotateFileHook(filepath, AppName)
 	log.AddHook(rotateFileHook)
 
-	return &logger{log}
+	return &Logger{log}
 }
 
-// fungsi setup loggernya
+// fungsi setup Loggernya
 func getLogFilePath() string {
 	if runtime.GOOS == "windows" {
 		return config.FILEPATH_LOG_WINDOWS
