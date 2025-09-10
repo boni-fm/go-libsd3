@@ -122,8 +122,8 @@ func (m *MultiDB) CloseAllConnection() {
 }
 
 func (m *MultiDB) SelectScalarByKodedc(kodedc, query string, args ...interface{}) (result interface{}, err error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	if m.Configs[kodedc] == nil {
 		return nil, fmt.Errorf("database configuration for %s not found", kodedc)
