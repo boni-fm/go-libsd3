@@ -30,7 +30,7 @@ type DBConfig struct {
 type MultiDB struct {
 	KodeDC  string
 	Configs map[string]*DBConfig
-	mu      sync.Mutex
+	mu      sync.RWMutex
 }
 
 func (m *MultiDB) SetupMultiDB(kodedc string) error {
@@ -70,9 +70,14 @@ func (m *MultiDB) SetupMultiDB(kodedc string) error {
 }
 
 func (m *MultiDB) GetDB(kodedc string) (*sql.DB, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if m.Configs[kodedc] == nil {
+		m.mu.RUnlock() // unlock readnya dulu sebelum write kedalam mutexnya
+		m.mu.Lock()
+		defer m.mu.Unlock()
+
+		// setup db barunya kalo blom di setup (jadi nanti bisa tinggal manggil kodedc aja mayhaps wkwkwkw)
 		err := m.SetupMultiDB(kodedc)
 		if err != nil {
 			return nil, err
@@ -84,6 +89,21 @@ func (m *MultiDB) GetDB(kodedc string) (*sql.DB, error) {
 	}
 
 	return nil, fmt.Errorf("terdapat kesalahan saat mencoba mengakses database %s", kodedc)
+}
+
+func (m *MultiDB) CloseSingleConnection(kodedc string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.Configs[kodedc] != nil && m.Configs[kodedc].DB != nil {
+		if err := m.Configs[kodedc].DB.Close(); err != nil {
+			m.Configs[kodedc].Log.Errorf("Error closing database for %s: %v", kodedc, err)
+			return err
+		}
+		m.Configs[kodedc].Log.Infof("Database connection for %s closed successfully", kodedc)
+		delete(m.Configs, kodedc)
+		return nil
+	}
+	return fmt.Errorf("tidak ada koneksi database ke kodedc : %s", kodedc)
 }
 
 func (m *MultiDB) CloseAllConnection() {
