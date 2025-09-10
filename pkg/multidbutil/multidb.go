@@ -121,6 +121,29 @@ func (m *MultiDB) CloseAllConnection() {
 	}
 }
 
+func (m *MultiDB) GetConnectionString(kodedc string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if m.Configs[kodedc] == nil {
+		return "", fmt.Errorf("database configuration for %s not found", kodedc)
+	}
+
+	return m.Configs[kodedc].ConnString, nil
+}
+
+func (m *MultiDB) GetAllConnectionStrings() map[string]string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	connStrings := make(map[string]string)
+	for kodedc, config := range m.Configs {
+		connStrings[kodedc] = config.ConnString
+	}
+
+	return connStrings
+}
+
 func (m *MultiDB) SelectScalarByKodedc(kodedc, query string, args ...interface{}) (result interface{}, err error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
