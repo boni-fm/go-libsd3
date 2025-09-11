@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 const (
 	FILEPATH_CONFIG_WINDOWS = "D:/go-libsd3/config.yaml"
 	FILEPATH_CONFIG_LINUX   = "/etc/go-libsd3/config.yaml"
@@ -15,4 +17,6 @@ const (
 	DATETIME_FORMAT = "2006-01-02 15:04:05"
 
 	DBTYPE_POSTGRE = "POSTGRE"
+
+	TIMEOUT_TWO_MINUTES = 120 * time.Second
 )

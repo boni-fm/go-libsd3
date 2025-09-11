@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/boni-fm/go-libsd3/config"
 )
 
 /*
@@ -28,8 +30,10 @@ type Params struct {
 
 func NewSettingLibClient(kunci string) *SettingLibClient {
 	return &SettingLibClient{
-		httpClient: &http.Client{},
-		key:        kunci,
+		httpClient: &http.Client{
+			Timeout: config.TIMEOUT_TWO_MINUTES,
+		},
+		key: kunci,
 	}
 }
 
