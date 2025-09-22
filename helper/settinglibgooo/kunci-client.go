@@ -18,6 +18,7 @@ import (
 
 var prefix = "mujiyono"
 var Baseurl = "localhost"
+var MAXRETRY = 3
 
 type SettingLibClient struct {
 	httpClient *http.Client
@@ -31,7 +32,7 @@ type Params struct {
 func NewSettingLibClient(kunci string) *SettingLibClient {
 	return &SettingLibClient{
 		httpClient: &http.Client{
-			Timeout: config.TIMEOUT_TWO_MINUTES,
+			Timeout: config.TIME_ONE_MINUTE,
 		},
 		key: kunci,
 	}
@@ -55,13 +56,13 @@ func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 
 	req, errReq := http.NewRequest("POST", url, bytes.NewBuffer(bodyByte))
 	if errReq != nil {
-		return "", errReq
+		return "", fmt.Errorf("failed to create request to kunci service %s : %v", key, errReq)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	resp, errResp := kc.httpClient.Do(req)
 	if errResp != nil {
-		return "", errResp
+		return "", fmt.Errorf("failed to hit kunci service %s : %v", key, errResp)
 	}
 	defer resp.Body.Close()
 
@@ -71,7 +72,7 @@ func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read response body: %v", err)
 	}
 
 	result := string(bodyBytes)
