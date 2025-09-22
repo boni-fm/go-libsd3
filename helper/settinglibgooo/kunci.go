@@ -122,49 +122,6 @@ func DynamicSettingWebXMLReader(key string) string {
 	return ""
 }
 
-// TODO : BERSIHIN FUNGSI INI ...
-// ini fungsi kalo mau baca langsung dari settingweb.xml
-// untuk sekarang tidak digunakan
-// func GetConnectionInfoBySettingWebXML() Node {
-// 	settingWebPath := func() string {
-// 		if osName := runtime.GOOS; osName == "windows" {
-// 			return config.FILEPATH_SETTINGWEB_WINDOWS
-// 		}
-// 		return config.FILEPATH_SETTINGWEB_LINUX
-// 	}
-
-// 	path := settingWebPath()
-// 	info, err := os.Stat(path)
-// 	if err != nil {
-// 		log.SayFatalf("Failed to stat SettingWeb.xml: %v", err)
-// 	}
-
-// 	mu.Lock()
-// 	defer mu.Unlock()
-// 	if cachedConnInfoTime == info.ModTime().Unix() {
-// 		return cachedConnInfo
-// 	}
-
-// 	xmlFile, err := os.Open(path)
-// 	if err != nil {
-// 		log.SayFatalf("Failed to open SettingWeb.xml: %v", err)
-// 	}
-// 	defer xmlFile.Close()
-
-// 	byteValue, _ := io.ReadAll(xmlFile)
-// 	var connInfo Node
-// 	xml.Unmarshal(byteValue, &connInfo)
-
-// 	// Ini konfigurasi untuk ngilangin timeout di dalem xml nya :D
-// 	// if strings.Contains(connInfo.UserPostgres, "Timeout") {
-// 	// 	connInfo.UserPostgres = strings.Split(connInfo.UserPostgres, ";")[0]
-// 	// }
-
-// 	cachedConnInfo = connInfo
-// 	cachedConnInfoTime = info.ModTime().Unix()
-// 	return connInfo
-// }
-
 func (k *Kunci) GetConnectionString(dbtype string) string {
 	switch strings.ToUpper(dbtype) {
 	case "POSTGRE":
