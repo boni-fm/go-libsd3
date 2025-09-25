@@ -41,20 +41,17 @@ func ReadConfigDynamicWithKey(path string, key string) (interface{}, error) {
 }
 
 func GetKunciConfigFilepath() (string, error) {
-	dir, err := os.Getwd()
+	ex, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			dir = filepath.Join(dir, "config.yaml")
-			return dir, nil
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-		dir = parent
+
+	binaryDir := filepath.Dir(ex)
+	configPath := filepath.Join(binaryDir, "config.yaml")
+
+	if _, err := os.Stat(configPath); err != nil {
+		return "", fmt.Errorf("config.yaml not found in binary directory: %s", binaryDir)
 	}
-	return "", fmt.Errorf("project root not found")
+
+	return configPath, nil
 }
