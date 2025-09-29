@@ -11,7 +11,7 @@ const (
 	FILEPATH_LOG_WINDOWS = "D:/_docker/_app/logs"
 
 	FILEPATH_SETTINGWEB_WINDOWS = "D:\\_docker\\_app\\kunci\\SettingWeb.xml"
-	FILEPATH_SETTINGWEB_LINUX   = "/_docker/_app/kunci/SettingWeb.xml"
+	FILEPATH_SETTINGWEB_LINUX   = "SettingWeb.xml"
 
 	DATE_FORMAT     = "2006-01-02"
 	DATETIME_FORMAT = "2006-01-02 15:04:05"
