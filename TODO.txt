@@ -1,0 +1,11 @@
+TODO:
+- ubah library db nya jadi sqlx atau pgx supaya performance nya lebih baik
+- permudah setup kafka util untuk producernya, beserta dengan config yang lebih fleksibel
+- siapkan beberapa variable, sehingga ketika setup library db itu bisa dapetin beberapa informasi penting terkait db nya
+  (kodedc, namadc, ...etc)
+- kalo bisa saat ingin query, itu tinggal oper aja structnya sehingga tidak perlu ada tambahan buat object di pengguna library
+- tambahan package ftp (access file, create, delete, ...etc)
+- tambahan package untuk file manipulation ataupun data manipulation
+  (list to csv, file to zip, ...etc)
+- perbaiki filepath logging supaya lebih jelas, dan kalo bisa nanti simpen nya dalam active directory
+- api wrapper 
