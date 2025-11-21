@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/boni-fm/go-libsd3/helper/logging"
+	logger "github.com/boni-fm/go-libsd3/arefactor-final/pkg/log"
 	_ "github.com/lib/pq"
 )
 
-var log = logging.NewLoggerWithFilename("cek-versi-kunci")
+var log = logger.NewLoggerWithFilename("cek-versi-kunci")
 
 var msgTidakTerdaftar = "Program .:%s:. belum terdaftar di Master Program DC,\r\n              Segera Hubungi \r\n        --=::>> SUPPORT <<::=-- "
 

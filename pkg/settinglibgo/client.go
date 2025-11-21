@@ -1,4 +1,23 @@
-package settinglibgooo
+package settinglibgo
+
+/*
+
+	Http Client untuk manggil kunci
+	Note:
+	- manggil POST request /GetVariabel dari apiservice kunci
+	- IP apikunci didapatkan dari env KUNCI_IP_DOMAIN -> docker-hub-nginx-1
+	  > jika env kosong, maka default localhost
+	- body nya make prefix "mujiyono"
+	- ada 3 kali proses retry jika panggilan pertama gagal
+
+	Err:
+	- kadang masih sering kena i/o timeout
+	  > solusi sementara restart service aplikasi yang implementasi
+
+	TODO:
+	- cari solusi permanen untuk masalah i/o timeout
+
+*/
 
 import (
 	"bytes"
@@ -9,22 +28,22 @@ import (
 	"os"
 	"strings"
 
-	"github.com/boni-fm/go-libsd3/config"
+	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 )
 
-/*
-	TODO:
-*/
+var (
+	PREFIX   = "mujiyono"
+	BASEURL  = "localhost"
+	MAXRETRY = 3
+)
 
-var prefix = "mujiyono"
-var Baseurl = "localhost"
-var MAXRETRY = 3
-
+// Struct untuk http client nya
 type SettingLibClient struct {
 	httpClient *http.Client
-	key        string
+	key        string // ini key constr nya, cth. "IPPostgres"
 }
 
+// Struct untuk body request kunci
 type Params struct {
 	Key string `json:"key"`
 }
@@ -32,7 +51,7 @@ type Params struct {
 func NewSettingLibClient(kunci string) *SettingLibClient {
 	return &SettingLibClient{
 		httpClient: &http.Client{
-			Timeout: config.TIME_ONE_MINUTE,
+			Timeout: constant.TIME_ONE_MINUTE,
 		},
 		key: kunci,
 	}
@@ -41,16 +60,16 @@ func NewSettingLibClient(kunci string) *SettingLibClient {
 func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 	kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN")
 	if kunciIpEnv != "" {
-		Baseurl = kunciIpEnv
+		BASEURL = kunciIpEnv
 	}
 
-	url := "http://" + Baseurl
+	url := "http://" + BASEURL
 	if kc.key != "" {
 		url += "/" + kc.key
 	}
 
 	url += "/GetVariabel"
-	bodyReq := prefix + key
+	bodyReq := PREFIX + key
 	params := Params{Key: bodyReq}
 	bodyByte, _ := json.Marshal(params)
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/boni-fm/go-libsd3/helper/logging"
+	logging "github.com/boni-fm/go-libsd3/pkg/log"
 	"gopkg.in/yaml.v3"
 )
 

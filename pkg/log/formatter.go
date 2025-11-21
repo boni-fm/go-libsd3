@@ -1,10 +1,10 @@
-package logging
+package log
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/boni-fm/go-libsd3/config"
+	"github.com/boni-fm/go-libsd3/arefactor-final/pkg/config/constant"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,7 +21,7 @@ func (c *CustomLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	// ini buat setting format lognya, sekarang ngikutin format log service abstraction + data
-	fmt.Fprintf(b, "[%s] [%s] [%s] - %s - Data: %v\n", *c.AppName, entry.Time.Format(config.DATETIME_FORMAT), entry.Level, entry.Message, entry.Data)
+	fmt.Fprintf(b, "[%s] [%s] [%s] - %s - Data: %v\n", *c.AppName, entry.Time.Format(constant.DATETIME_FORMAT), entry.Level, entry.Message, entry.Data)
 
 	return b.Bytes(), nil
 }

@@ -1,4 +1,4 @@
-package yamlreader
+package yaml
 
 import (
 	"errors"

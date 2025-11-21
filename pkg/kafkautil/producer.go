@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/boni-fm/go-libsd3/helper/logging"
+	logging "github.com/boni-fm/go-libsd3/pkg/log"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 

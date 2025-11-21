@@ -1,4 +1,4 @@
-package config
+package constant
 
 import "time"
 
@@ -8,7 +8,7 @@ const (
 	KEY_ENV_KUNCI           = "KunciWeb"
 
 	FILEPATH_LOG_LINUX   = "/var/log/nginx/api"
-	FILEPATH_LOG_WINDOWS = "D:/_docker/_app/logs"
+	FILEPATH_LOG_WINDOWS = "D:/go-apps/logs"
 
 	FILEPATH_SETTINGWEB_WINDOWS = "D:\\_docker\\_app\\kunci\\SettingWeb.xml"
 	FILEPATH_SETTINGWEB_LINUX   = "SettingWeb.xml"
