@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	logger "github.com/boni-fm/go-libsd3/arefactor-final/pkg/log"
+	logger "github.com/boni-fm/go-libsd3/pkg/log"
 	_ "github.com/lib/pq"
 )
 

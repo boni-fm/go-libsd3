@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/boni-fm/go-libsd3/arefactor-final/pkg/config/constant"
+	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 	"github.com/sirupsen/logrus"
 )
 
