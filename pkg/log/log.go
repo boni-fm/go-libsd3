@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/boni-fm/go-libsd3/refactor/pkg/config/constant"
+	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 	"github.com/sirupsen/logrus"
 	"github.com/snowzach/rotatefilehook"
 )
