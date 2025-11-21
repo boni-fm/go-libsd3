@@ -18,6 +18,7 @@ package settinglibgo
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	logger "github.com/boni-fm/go-libsd3/pkg/log"
 )
@@ -41,6 +42,7 @@ type DBConfig struct {
 }
 
 type MainConfiguration struct {
+	mu                      sync.RWMutex
 	PostgreConnectionConfig Config[PostgreConnectionConfig]
 	SettingLibClient        *SettingLibClient
 }
@@ -55,19 +57,29 @@ func NewSettingLib(kuncidc string) *MainConfiguration {
 func (k *MainConfiguration) GetConnectionString(dbtype string) string {
 	switch strings.ToUpper(dbtype) {
 	case "POSTGRE":
-		k.SetPGConStringFromWebservice()
+		_, _ = k.SetPGConStringFromWebservice()
+
+		k.mu.RLock()
 		config := k.PostgreConnectionConfig
+		k.mu.RUnlock()
+
 		return fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			config.ConnectionConfig.IPPostgres, config.ConnectionConfig.PortPostgres, config.ConnectionConfig.UserPostgres, config.ConnectionConfig.PasswordPostgres, config.ConnectionConfig.DatabasePostgres)
+			config.ConnectionConfig.IPPostgres,
+			config.ConnectionConfig.PortPostgres,
+			config.ConnectionConfig.UserPostgres,
+			config.ConnectionConfig.PasswordPostgres,
+			config.ConnectionConfig.DatabasePostgres)
 	}
 
-	// return kosong klo gk ada apa2 wkwkwkwk
 	return ""
 }
 
 // Koleksi dapetin constring dari webservice kunci
 func (k *MainConfiguration) SetPGConStringFromWebservice() (*MainConfiguration, error) {
+	k.mu.Lock()
+	defer k.mu.Unlock()
+
 	user, err := k.SettingLibClient.GetVariable("UserPostgres")
 	if err != nil {
 		log.Error("Failed to get UserPostgres variable :", err)

@@ -56,6 +56,14 @@ type Database struct {
 	startTime  time.Time
 }
 
+// 😡
+var connStrCache = struct {
+	sync.RWMutex
+	m map[string]string
+}{
+	m: make(map[string]string),
+}
+
 // -=-=-=-=-=-=-=-=-=-
 // INITIALIZE METHODS
 // -=-=-=-=-=-=-=-=-=-
@@ -66,10 +74,15 @@ type Database struct {
 // - config nya gk harus semua diisi (ada default value)
 // - ambil connstring dari settinglib, baca kunci nginx docker atau non-docker
 func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
+	connStr, err := InitConstrByKodeDc(ctx, cfg.KodeDC)
+	if err != nil {
+		return nil, err
+	}
+
 	// dapetin kunci dari settinglib
 	db := &Database{
 		ConfigDB:   initDefaultConfig(cfg),
-		ConnString: initConstrByKodeDc(cfg.KodeDC),
+		ConnString: connStr,
 	}
 
 	poolConfig, err := db.GetPool(ctx)
@@ -96,25 +109,80 @@ func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 
 // dapetin connection string dari settinglib
 // baca kunci dari env variable (docker) atau file yaml (non-docker)
-func initConstrByKodeDc(kodeDc string) string {
+func InitConstrByKodeDc(ctx context.Context, kodeDc string) (string, error) {
+	// Check cache first
+	connStrCache.RLock()
+	if cs, ok := connStrCache.m[kodeDc]; ok {
+		connStrCache.RUnlock()
+		return cs, nil
+	}
+	connStrCache.RUnlock()
+
 	var strKunci string
 
-	strKunciDocker := os.Getenv(constant.KEY_ENV_KUNCI)
-	if strKunciDocker != "" {
+	// Priority 1: Environment variable
+	if strKunciDocker := os.Getenv(constant.KEY_ENV_KUNCI); strKunciDocker != "" {
 		strKunci = strKunciDocker
+		fmt.Printf("[INFO] Using kunci from ENV: %s\n", strKunci)
 	} else {
-		kuncipath, _ := yaml.GetKunciConfigFilepath()
-		keyYaml, _ := yaml.ReadConfigDynamicWithKey(kuncipath, "kunci")
-		strKunci = keyYaml.(string)
+		// Priority 2: YAML config file
+		kuncipath, err := yaml.GetKunciConfigFilepath()
+		if err != nil {
+			fmt.Printf("[WARN] Failed to get kunci config filepath: %v\n", err)
+		} else if kuncipath == "" {
+			fmt.Printf("[WARN] Kunci config filepath is empty\n")
+		} else {
+			fmt.Printf("[DEBUG] Kunci config path: %s\n", kuncipath)
+
+			// Verify file exists
+			if _, err := os.Stat(kuncipath); err != nil {
+				fmt.Printf("[WARN] Config file does not exist at %s: %v\n", kuncipath, err)
+			} else {
+				keyYaml, readErr := yaml.ReadConfigDynamicWithKey(kuncipath, "kunci")
+				if readErr != nil {
+					fmt.Printf("[WARN] Failed to read 'kunci' from YAML: %v\n", readErr)
+				} else if keyYaml == nil {
+					fmt.Printf("[WARN] 'kunci' key is nil in YAML\n")
+				} else {
+					if kunciValue, ok := keyYaml.(string); ok && kunciValue != "" {
+						strKunci = kunciValue
+						fmt.Printf("[INFO] Using kunci from YAML: %s\n", strKunci)
+					} else {
+						fmt.Printf("[WARN] 'kunci' is not a non-empty string in YAML, got type: %T, value: %v\n", keyYaml, keyYaml)
+					}
+				}
+			}
+		}
 	}
 
+	// Priority 3: Fallback to default
 	if strKunci == "" {
-		strKunci = strings.ToLower(kodeDc)
+		strKunci = "kunci" + strings.ToLower(kodeDc)
+		fmt.Printf("[WARN] Using fallback kunci: %s\n", strKunci)
 	}
 
+	fmt.Printf("[DEBUG] Final kunci key: %s\n", strKunci)
+
+	// Allow context cancellation
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
+
+	// Get connection string from SettingLib
 	kunciManager := settinglibgo.NewSettingLib(strKunci)
 	constr := kunciManager.GetConnectionString(constant.DBTYPE_POSTGRE)
-	return constr
+	if constr == "" {
+		return "", fmt.Errorf("empty connection string for kunci=%s", strKunci)
+	}
+
+	// Cache result
+	connStrCache.Lock()
+	connStrCache.m[kodeDc] = constr
+	connStrCache.Unlock()
+
+	return constr, nil
 }
 
 // isi default value dari confignya
