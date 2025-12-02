@@ -70,7 +70,7 @@ func generateRotateFileHook(filepath, appName string) *rotatefilehook.RotateFile
 	hook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
 		Filename:   filepath,
 		MaxSize:    50, // megabytes
-		MaxBackups: 3,  // amouts
+		MaxBackups: 7,  // amouts
 		MaxAge:     28, //days
 		Level:      logrus.InfoLevel,
 		Formatter:  &CustomLogFormatter{AppName: &appName},
