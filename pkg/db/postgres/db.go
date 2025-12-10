@@ -36,7 +36,6 @@ type Config struct {
 	MinConns        int
 	ConnMaxLifetime time.Duration
 	MaxConnIdleTime time.Duration
-	SSLMode         string // disable, allow, prefer, require
 
 	// buat ngecek kesehatan debe,
 	// kalo meleduk jadi ketauan
@@ -274,12 +273,6 @@ func initDefaultConfig(cfg *Config) *Config {
 		cfg.HealthCheckInterval = 5 * time.Minute
 	}
 
-	// Todo:
-	// - cari tau ini itu apa? awkawkwk
-	if cfg.SSLMode == "" {
-		cfg.SSLMode = "disable"
-	}
-
 	return cfg
 }
 
@@ -294,7 +287,6 @@ func (m *Database) GetPool(ctx context.Context) (*pgxpool.Config, error) {
 
 	config.MaxConns = int32(m.ConfigDB.MaxConns)
 	config.MinConns = int32(m.ConfigDB.MinConns)
-	config.ConnConfig.RuntimeParams["sslmode"] = m.ConfigDB.SSLMode
 	config.MaxConnLifetime = m.ConfigDB.ConnMaxLifetime
 	config.MaxConnIdleTime = m.ConfigDB.MaxConnIdleTime
 
