@@ -667,11 +667,33 @@ func (d *Database) GetStats() pgxpool.Stat {
 	return *d.Pool.Stat()
 }
 
-// dapetin kode dc nya
+// get kode dc dari config
 func (d *Database) GetKodeDc() string {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return d.ConfigDB.KodeDC
+}
+
+// / get kode dc dari tabel dc_tabel_dc_t
+func (d *Database) GetKodeDcFromDB(ctx context.Context) (string, error) {
+	var kodeDc string
+	query := "SELECT tbl_dc_kode FROM dc_tabel_dc_t LIMIT 1"
+	err := d.SelectOne(ctx, &kodeDc, query)
+	if err != nil {
+		return "", fmt.Errorf("error getting tbl_dc_kode from database: %w", err)
+	}
+	return kodeDc, nil
+}
+
+// get server db time
+func (d *Database) GetServerTime(ctx context.Context) (time.Time, error) {
+	var serverTime time.Time
+	query := "SELECT NOW()"
+	err := d.SelectOne(ctx, &serverTime, query)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error getting server time from database: %w", err)
+	}
+	return serverTime, nil
 }
 
 // dapetin uptime koneksinya
