@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/boni-fm/go-libsd3/pkg/settinglibgo"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -36,6 +37,104 @@ func GetTokenFromAuthAPIAWS() (string, error) {
 
 	encryptedUsername := os.Getenv("API_USERNAME")
 	encryptedPassword := os.Getenv("API_PASSWORD")
+
+	req.SetBasicAuth(encryptedUsername, encryptedPassword)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("login-auth gagal, status: %d", resp.StatusCode)
+	}
+
+	var token string
+	if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+		return "", err
+	}
+
+	if token == "" {
+		return "", errors.New("token kosong dari auth api")
+	}
+
+	return token, nil
+}
+
+func FetchTokenAuthFromSettingLib(KodeDc string) (string, error) {
+	settingLibClient := settinglibgo.NewSettingLibClient(KodeDc)
+	ApiAuthUrl, err := settingLibClient.GetVariable("BaseUrlCloud")
+	if err != nil {
+		return "", fmt.Errorf("[BaseUrlCloud] base url pada kunci kosong, cek kembali SettingWeb.xml pada kunci")
+	}
+
+	req, err := http.NewRequest(
+		http.MethodGet,
+		ApiAuthUrl,
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedUsername := os.Getenv("API_USERNAME")
+	encryptedPassword := os.Getenv("API_PASSWORD")
+	if encryptedUsername == "" || encryptedPassword == "" {
+		return "", errors.New("API_USERNAME atau API_PASSWORD tidak ditemukan di environment variables")
+	}
+
+	req.SetBasicAuth(encryptedUsername, encryptedPassword)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("login-auth gagal, status: %d", resp.StatusCode)
+	}
+
+	var token string
+	if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+		return "", err
+	}
+
+	if token == "" {
+		return "", errors.New("token kosong dari auth api")
+	}
+
+	return token, nil
+}
+
+func FetchTokenAuthFromUrl(ApiAuthUrl string) (string, error) {
+	if ApiAuthUrl == "" {
+		return "", errors.New("ApiAuthUrl kosong, pastikan parameter url auth api tidak kosong")
+	}
+
+	req, err := http.NewRequest(
+		http.MethodGet,
+		ApiAuthUrl,
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedUsername := os.Getenv("API_USERNAME")
+	encryptedPassword := os.Getenv("API_PASSWORD")
+	if encryptedUsername == "" || encryptedPassword == "" {
+		return "", errors.New("API_USERNAME atau API_PASSWORD tidak ditemukan di environment variables")
+	}
 
 	req.SetBasicAuth(encryptedUsername, encryptedPassword)
 
