@@ -73,6 +73,7 @@ func FetchTokenAuthFromSettingLib(KodeDc string) (string, error) {
 		return "", fmt.Errorf("[BaseUrlCloud] base url pada kunci kosong, cek kembali SettingWeb.xml pada kunci")
 	}
 
+	ApiAuthUrl = ApiAuthUrl + "/apicloudauth/login-auth"
 	req, err := http.NewRequest(
 		http.MethodGet,
 		ApiAuthUrl,
