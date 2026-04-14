@@ -67,7 +67,7 @@ func GetTokenFromAuthAPIAWS() (string, error) {
 }
 
 func FetchTokenAuthFromSettingLib(KodeDc string) (string, error) {
-	settingLibClient := settinglibgo.NewSettingLibClient(KodeDc)
+	settingLibClient := settinglibgo.NewSettingLibClient("kunci" + KodeDc)
 	ApiAuthUrl, err := settingLibClient.GetVariable("BaseUrlCloud")
 	if err != nil {
 		return "", fmt.Errorf("[BaseUrlCloud] base url pada kunci kosong, cek kembali SettingWeb.xml pada kunci")
