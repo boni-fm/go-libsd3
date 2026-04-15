@@ -8,7 +8,14 @@ package settinglibgo
 	- IP apikunci didapatkan dari env KUNCI_IP_DOMAIN -> docker-hub-nginx-1
 	  > jika env kosong, maka default localhost
 	- body nya make prefix "mujiyono"
-	- ada 3 kali proses retry jika panggilan pertama gagal, dengan linear backoff
+	- ada 3 kali proses retry jika panggilan pertama gagal
+
+	Err:
+	- kadang masih sering kena i/o timeout
+	  > solusi sementara restart service aplikasi yang implementasi
+
+	TODO:
+	- cari solusi permanen untuk masalah i/o timeout
 
 */
 
@@ -20,7 +27,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 )
@@ -44,79 +50,63 @@ type Params struct {
 }
 
 func NewSettingLibClient(kunci string) *SettingLibClient {
-	trimmed := strings.TrimSpace(kunci)
-	key := trimmed
-	if !strings.Contains(strings.ToLower(trimmed), PREFIX_KUNCI) {
-		key = PREFIX_KUNCI + trimmed
-	}
-
 	return &SettingLibClient{
 		httpClient: &http.Client{
 			Timeout: constant.TIME_FIVE_MINUTES,
 		},
-		key: key,
+		key: func() string {
+			if strings.Contains(
+				strings.ToLower(kunci),
+				PREFIX_KUNCI,
+			) {
+				return kunci
+			}
+			return PREFIX_KUNCI + strings.TrimSpace(kunci)
+		}(),
 	}
 }
 
 func (kc *SettingLibClient) GetVariable(key string) (string, error) {
-	baseURL := BASEURL
-	if env := os.Getenv("KUNCI_IP_DOMAIN"); env != "" {
-		baseURL = env
+	kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN")
+	if kunciIpEnv != "" {
+		BASEURL = kunciIpEnv
 	}
 
-	url := "http://" + baseURL
+	url := "http://" + BASEURL
 	if kc.key != "" {
 		url += "/" + kc.key
 	}
+
 	url += "/GetVariabel"
+	bodyReq := PREFIX + key
+	params := Params{Key: bodyReq}
+	bodyByte, _ := json.Marshal(params)
 
-	bodyByte, err := json.Marshal(Params{Key: PREFIX + key})
+	req, errReq := http.NewRequest("POST", url, bytes.NewBuffer(bodyByte))
+	if errReq != nil {
+		return "", fmt.Errorf("failed to create request to kunci service %s : %v", key, errReq)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	resp, errResp := kc.httpClient.Do(req)
+	if errResp != nil {
+		return "", fmt.Errorf("failed to hit kunci service %s : %v", key, errResp)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to get variable: %s", resp.Status)
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request for %s: %v", key, err)
+		return "", fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	var lastErr error
-	for attempt := 0; attempt < MAXRETRY; attempt++ {
-		if attempt > 0 {
-			time.Sleep(time.Duration(attempt) * time.Second)
-		}
-
-		req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyByte))
-		if err != nil {
-			// Request creation failure is not retryable.
-			return "", fmt.Errorf("failed to create request for %s: %v", key, err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := kc.httpClient.Do(req)
-		if err != nil {
-			lastErr = fmt.Errorf("failed to call kunci service for %s: %v", key, err)
-			continue
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			io.Copy(io.Discard, resp.Body) // drain to allow connection reuse
-			resp.Body.Close()
-			lastErr = fmt.Errorf("kunci service returned %s for key %s", resp.Status, key)
-			continue
-		}
-
-		bodyBytes, readErr := io.ReadAll(resp.Body)
-		resp.Body.Close()
-
-		if readErr != nil {
-			lastErr = fmt.Errorf("failed to read response for %s: %v", key, readErr)
-			continue
-		}
-
-		result := string(bodyBytes)
-		if strings.Contains(result, "Timeout") {
-			lastErr = fmt.Errorf("kunci service timeout response for key %s", key)
-			continue
-		}
-
-		return result, nil
+	result := string(bodyBytes)
+	if strings.Contains(result, "Timeout") {
+		result = strings.Split(result, ";")[0]
 	}
 
-	return "", fmt.Errorf("all %d attempts failed for key %s: %w", MAXRETRY, key, lastErr)
+	return result, nil
 }
