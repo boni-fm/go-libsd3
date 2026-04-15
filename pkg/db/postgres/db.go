@@ -29,6 +29,9 @@ type Config struct {
 	// dc ~ 🏢
 	KodeDC string
 
+	// app name (history pelaku!!) ~ 🚔
+	AppName string
+
 	// dibawah ini optional,
 	// nanti di initialize connection akan ada default value nya
 	// kalo bisa diisi dari awal buat confignya, biar jelas
@@ -75,7 +78,7 @@ var connStrCache = struct {
 func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 	connStr, err := func() (string, error) {
 		if cfg.KodeDC != "" {
-			return InitConstrByKodeDc(ctx, cfg.KodeDC)
+			return InitConstrByKodeDc(ctx, cfg.KodeDC, cfg.AppName)
 		}
 		return InitConstr(ctx)
 	}()
@@ -174,7 +177,7 @@ func InitConstr(ctx context.Context) (string, error) {
 
 // dapetin connection string dari settinglib
 // baca kunci dari env variable (docker) atau file yaml (non-docker)
-func InitConstrByKodeDc(ctx context.Context, kodeDc string) (string, error) {
+func InitConstrByKodeDc(ctx context.Context, kodeDc string, appName string) (string, error) {
 	// Check cache first
 	connStrCache.RLock()
 	if cs, ok := connStrCache.m[kodeDc]; ok {
@@ -237,6 +240,12 @@ func InitConstrByKodeDc(ctx context.Context, kodeDc string) (string, error) {
 
 	// Get connection string from SettingLib
 	kunciManager := settinglibgo.NewSettingLib(strKunci)
+	kunciManager.SetAppName(func() string {
+		if appName != "" {
+			return appName
+		}
+		return "GO APPS"
+	}())
 	constr := kunciManager.GetConnectionString(constant.DBTYPE_POSTGRE)
 	if constr == "" {
 		return "", fmt.Errorf("empty connection string for kunci=%s", strKunci)

@@ -42,6 +42,9 @@ type DBConfig struct {
 }
 
 type MainConfiguration struct {
+	// untuk pelaku utama ngebomb (gk perlu di set hehe)
+	AppName string
+
 	mu                      sync.RWMutex
 	PostgreConnectionConfig Config[PostgreConnectionConfig]
 	SettingLibClient        *SettingLibClient
@@ -51,6 +54,10 @@ func NewSettingLib(kuncidc string) *MainConfiguration {
 	return &MainConfiguration{
 		SettingLibClient: NewSettingLibClient(kuncidc),
 	}
+}
+
+func (k *MainConfiguration) SetAppName(appname string) {
+	k.AppName = appname
 }
 
 // Get constring nya :D
@@ -64,12 +71,18 @@ func (k *MainConfiguration) GetConnectionString(dbtype string) string {
 		k.mu.RUnlock()
 
 		return fmt.Sprintf(
-			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable application_name=%s",
 			config.ConnectionConfig.IPPostgres,
 			config.ConnectionConfig.PortPostgres,
 			config.ConnectionConfig.UserPostgres,
 			config.ConnectionConfig.PasswordPostgres,
-			config.ConnectionConfig.DatabasePostgres)
+			config.ConnectionConfig.DatabasePostgres,
+			func() string {
+				if k.AppName != "" {
+					return k.AppName
+				}
+				return "GO APPS"
+			}())
 	}
 
 	return ""
