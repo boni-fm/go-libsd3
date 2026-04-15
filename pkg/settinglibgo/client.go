@@ -52,7 +52,7 @@ type Params struct {
 func NewSettingLibClient(kunci string) *SettingLibClient {
 	return &SettingLibClient{
 		httpClient: &http.Client{
-			Timeout: constant.TIME_ONE_MINUTE,
+			Timeout: constant.TIME_FIVE_MINUTES,
 		},
 		key: func() string {
 			if strings.Contains(

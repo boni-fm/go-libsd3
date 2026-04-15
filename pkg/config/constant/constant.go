@@ -18,7 +18,8 @@ const (
 
 	DBTYPE_POSTGRE = "POSTGRE"
 
-	TIME_TWO_MINUTES = 120 * time.Second
-	TIME_ONE_MINUTE  = 60 * time.Second
-	TIME_TEN_SECONDS = 10 * time.Second
+	TIME_FIVE_MINUTES = 300 * time.Second
+	TIME_TWO_MINUTES  = 120 * time.Second
+	TIME_ONE_MINUTE   = 60 * time.Second
+	TIME_TEN_SECONDS  = 10 * time.Second
 )
