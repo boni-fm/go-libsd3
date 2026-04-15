@@ -14,7 +14,6 @@ package settinglibgo
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -52,16 +51,14 @@ func NewSettingLibClient(kunci string) *SettingLibClient {
 	}
 
 	return &SettingLibClient{
-		// No client-level timeout; per-request context timeout is used instead,
-		// so each retry attempt gets its own independent deadline.
-		httpClient: &http.Client{},
-		key:        key,
+		httpClient: &http.Client{
+			Timeout: constant.TIME_FIVE_MINUTES,
+		},
+		key: key,
 	}
 }
 
 func (kc *SettingLibClient) GetVariable(key string) (string, error) {
-	// Read env on every call so runtime changes are picked up,
-	// but never write to the global to avoid race conditions.
 	baseURL := BASEURL
 	if env := os.Getenv("KUNCI_IP_DOMAIN"); env != "" {
 		baseURL = env
@@ -84,50 +81,42 @@ func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 			time.Sleep(time.Duration(attempt) * time.Second)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), constant.TIME_ONE_MINUTE)
-		result, err := kc.doRequest(ctx, url, bodyByte, key)
-		cancel()
-
-		if err == nil {
-			return result, nil
+		req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyByte))
+		if err != nil {
+			// Request creation failure is not retryable.
+			return "", fmt.Errorf("failed to create request for %s: %v", key, err)
 		}
-		lastErr = err
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := kc.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to call kunci service for %s: %v", key, err)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			io.Copy(io.Discard, resp.Body) // drain to allow connection reuse
+			resp.Body.Close()
+			lastErr = fmt.Errorf("kunci service returned %s for key %s", resp.Status, key)
+			continue
+		}
+
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if readErr != nil {
+			lastErr = fmt.Errorf("failed to read response for %s: %v", key, readErr)
+			continue
+		}
+
+		result := string(bodyBytes)
+		if strings.Contains(result, "Timeout") {
+			lastErr = fmt.Errorf("kunci service timeout response for key %s", key)
+			continue
+		}
+
+		return result, nil
 	}
 
 	return "", fmt.Errorf("all %d attempts failed for key %s: %w", MAXRETRY, key, lastErr)
-}
-
-func (kc *SettingLibClient) doRequest(ctx context.Context, url string, body []byte, key string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request for %s: %v", key, err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := kc.httpClient.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to call kunci service for %s: %v", key, err)
-	}
-	defer func() {
-		// Drain body to allow TCP connection reuse before closing.
-		io.Copy(io.Discard, resp.Body) //nolint:errcheck
-		resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("kunci service returned %s for key %s", resp.Status, key)
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response for %s: %v", key, err)
-	}
-
-	result := string(bodyBytes)
-	// Treat a "Timeout" body as an error so the retry loop can handle it.
-	if strings.Contains(result, "Timeout") {
-		return "", fmt.Errorf("kunci service timeout response for key %s", key)
-	}
-
-	return result, nil
 }
