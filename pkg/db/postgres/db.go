@@ -239,13 +239,15 @@ func InitConstrByKodeDc(ctx context.Context, kodeDc string, appName string) (str
 	}
 
 	// Get connection string from SettingLib
-	kunciManager := settinglibgo.NewSettingLib(strKunci)
-	kunciManager.SetAppName(func() string {
-		if appName != "" {
-			return appName
-		}
-		return "GO APPS"
-	}())
+	kunciManager := settinglibgo.NewSettingLibWithAppName(
+		strKunci,
+		func() string {
+			if appName != "" {
+				return appName
+			}
+			return "GOAPPS"
+		}(),
+	)
 	constr := kunciManager.GetConnectionString(constant.DBTYPE_POSTGRE)
 	if constr == "" {
 		return "", fmt.Errorf("empty connection string for kunci=%s", strKunci)

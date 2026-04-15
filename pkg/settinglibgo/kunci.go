@@ -56,6 +56,13 @@ func NewSettingLib(kuncidc string) *MainConfiguration {
 	}
 }
 
+func NewSettingLibWithAppName(kuncidc, appName string) *MainConfiguration {
+	return &MainConfiguration{
+		SettingLibClient: NewSettingLibClient(kuncidc),
+		AppName:          appName,
+	}
+}
+
 func (k *MainConfiguration) SetAppName(appname string) {
 	k.AppName = appname
 }
@@ -81,7 +88,7 @@ func (k *MainConfiguration) GetConnectionString(dbtype string) string {
 				if k.AppName != "" {
 					return k.AppName
 				}
-				return "GO APPS"
+				return "GOAPPS"
 			}())
 	}
 
