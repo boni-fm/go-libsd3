@@ -54,5 +54,5 @@ require (
 require (
 	github.com/snowzach/rotatefilehook v0.0.0-20220211133110-53752135082d
 	github.com/spf13/viper v1.21.0
-	golang.org/x/sys v0.35.0
+	golang.org/x/sys v0.35.0 // indirect
 )
