@@ -74,7 +74,10 @@ func DynamicSettingWebXMLReader(key string) string {
 	}
 
 	var xmlNode Node
-	xml.Unmarshal(byteValue, &xmlNode)
+	if err := xml.Unmarshal(byteValue, &xmlNode); err != nil {
+		fmt.Fprintf(os.Stderr, "DynamicSettingWebXMLReader: gagal parse SettingWeb.xml: %v\n", err)
+		return ""
+	}
 
 	// Update cache BEFORE searching
 	cachedConnInfo = xmlNode
