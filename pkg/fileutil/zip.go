@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -120,13 +119,17 @@ func UnzipToFs(fs afero.Fs, srcPath, destDir string) error {
 		return fmt.Errorf("fileutil/zip: open zip reader: %w", err)
 	}
 
-	// Normalise destDir so our prefix check works reliably.
+	// Normalise destDir so our prefix check works reliably on all platforms.
 	cleanDest := filepath.Clean(destDir)
+	// Use slash-normalised paths for the prefix check so mixed separators
+	// (e.g. on Windows) cannot bypass the protection.
+	cleanDestSlash := filepath.ToSlash(cleanDest) + "/"
 
 	for _, f := range zr.File {
-		// Zip-slip protection
+		// Zip-slip protection: normalise the target and check it is inside destDir.
 		target := filepath.Join(cleanDest, f.Name)
-		if !strings.HasPrefix(filepath.Clean(target)+string(os.PathSeparator), cleanDest+string(os.PathSeparator)) {
+		targetSlash := filepath.ToSlash(filepath.Clean(target)) + "/"
+		if !strings.HasPrefix(targetSlash, cleanDestSlash) {
 			return fmt.Errorf("fileutil/zip: zip-slip detected: %s", f.Name)
 		}
 
