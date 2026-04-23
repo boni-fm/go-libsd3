@@ -67,12 +67,12 @@ func NewSettingLibClient(kunci string) *SettingLibClient {
 }
 
 func (kc *SettingLibClient) GetVariable(key string) (string, error) {
-	kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN")
-	if kunciIpEnv != "" {
-		BASEURL = kunciIpEnv
+	baseURL := BASEURL
+	if kunciIpEnv := os.Getenv("KUNCI_IP_DOMAIN"); kunciIpEnv != "" {
+		baseURL = kunciIpEnv
 	}
 
-	url := "http://" + BASEURL
+	url := "http://" + baseURL
 	if kc.key != "" {
 		url += "/" + kc.key
 	}
@@ -80,7 +80,10 @@ func (kc *SettingLibClient) GetVariable(key string) (string, error) {
 	url += "/GetVariabel"
 	bodyReq := PREFIX + key
 	params := Params{Key: bodyReq}
-	bodyByte, _ := json.Marshal(params)
+	bodyByte, err := json.Marshal(params)
+	if err != nil {
+		return "", fmt.Errorf("gagal marshal request body: %w", err)
+	}
 
 	req, errReq := http.NewRequest("POST", url, bytes.NewBuffer(bodyByte))
 	if errReq != nil {

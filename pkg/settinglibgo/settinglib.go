@@ -7,6 +7,9 @@ import (
 	"github.com/boni-fm/go-libsd3/pkg/yaml"
 )
 
+// GetConnStringPostgre mengembalikan connection string PostgreSQL.
+// Mengambil kunci dari environment variable atau file konfigurasi YAML.
+// Mengembalikan string kosong jika kunci tidak ditemukan atau bukan bertipe string.
 func GetConnStringPostgre() string {
 	const dbtype = "POSTGRE"
 	var strKunci string
@@ -17,10 +20,16 @@ func GetConnStringPostgre() string {
 	} else {
 		kuncipath, _ := yaml.GetKunciConfigFilepath()
 		key, _ := yaml.ReadConfigDynamicWithKey(kuncipath, "kunci")
-		strKunci = key.(string)
+		if v, ok := key.(string); ok {
+			strKunci = v
+		}
 	}
 
-	key := NewSettingLib(strKunci)
-	ConStr := key.GetConnectionString(dbtype)
+	if strKunci == "" {
+		return ""
+	}
+
+	k := NewSettingLib(strKunci)
+	ConStr := k.GetConnectionString(dbtype)
 	return ConStr
 }

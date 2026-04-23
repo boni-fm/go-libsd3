@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -512,22 +514,27 @@ func (d *Database) InsertBatch(ctx context.Context, query string, records [][]in
 	return lastID, nil
 }
 
-// CopyFrom performs a bulk copy operation (COPY FROM)
-// This is the fastest way to insert large amounts of data (10-100x faster than INSERT)
-// Usage: rows, err := db.CopyFrom(ctx, "users", []string{"name", "email"}, [][]interface{}{{"John", "john@example.com"}})
+// CopyFrom melakukan operasi bulk copy (COPY FROM) ke tabel database.
+// Ini adalah cara tercepat untuk menyisipkan data dalam jumlah besar.
+// Pengecekan status koneksi dilakukan SEBELUM mengambil koneksi dari pool.
+// Parameter:
+//   - ctx: context untuk operasi
+//   - tableName: nama tabel tujuan
+//   - columnNames: daftar nama kolom
+//   - records: data yang akan dimasukkan, setiap elemen adalah satu baris
 func (d *Database) CopyFrom(ctx context.Context, tableName string, columnNames []string, records [][]interface{}) (int64, error) {
 	d.mu.RLock()
-	conn, err := d.Pool.Acquire(ctx)
+	closed := d.isClosed
 	d.mu.RUnlock()
+	if closed {
+		return 0, fmt.Errorf("database connection is closed")
+	}
 
+	conn, err := d.Pool.Acquire(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error acquiring connection: %w", err)
 	}
 	defer conn.Release()
-
-	if d.isClosed {
-		return 0, fmt.Errorf("database connection is closed")
-	}
 
 	rows, err := conn.Conn().CopyFrom(ctx, pgx.Identifier{tableName}, columnNames, pgx.CopyFromSlice(len(records), func(i int) ([]interface{}, error) {
 		return records[i], nil
@@ -712,4 +719,67 @@ func (d *Database) GetUpTime() time.Duration {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	return time.Since(d.startTime)
+}
+
+// ExportQueryToCSV mengekspor hasil query ke format CSV yang ditulis ke w.
+// Baris pertama CSV adalah nama kolom. Setiap baris berikutnya adalah data.
+// Mengembalikan error yang menunjukkan nomor baris yang gagal jika scan gagal.
+// Parameter:
+//   - ctx: context untuk operasi database
+//   - w: io.Writer tempat output CSV ditulis
+//   - query: query SQL yang akan dieksekusi
+//   - args: argumen untuk query SQL
+func (d *Database) ExportQueryToCSV(ctx context.Context, w io.Writer, query string, args ...any) error {
+	d.mu.RLock()
+	closed := d.isClosed
+	d.mu.RUnlock()
+	if closed {
+		return fmt.Errorf("ExportQueryToCSV: database connection is closed")
+	}
+
+	rows, err := d.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return fmt.Errorf("ExportQueryToCSV: gagal eksekusi query: %w", err)
+	}
+	defer rows.Close()
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	fieldDescs := rows.FieldDescriptions()
+	headers := make([]string, len(fieldDescs))
+	for i, fd := range fieldDescs {
+		headers[i] = fd.Name
+	}
+	if err := writer.Write(headers); err != nil {
+		return fmt.Errorf("ExportQueryToCSV: gagal menulis header CSV: %w", err)
+	}
+
+	rowIndex := 0
+	for rows.Next() {
+		values, err := rows.Values()
+		if err != nil {
+			return fmt.Errorf("ExportQueryToCSV: gagal scan baris ke-%d: %w", rowIndex, err)
+		}
+
+		record := make([]string, len(values))
+		for i, v := range values {
+			if v == nil {
+				record[i] = ""
+			} else {
+				record[i] = fmt.Sprintf("%v", v)
+			}
+		}
+
+		if err := writer.Write(record); err != nil {
+			return fmt.Errorf("ExportQueryToCSV: gagal menulis baris ke-%d: %w", rowIndex, err)
+		}
+		rowIndex++
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("ExportQueryToCSV: error iterasi rows: %w", err)
+	}
+
+	return nil
 }

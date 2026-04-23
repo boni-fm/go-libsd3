@@ -10,6 +10,7 @@ package settinglibgo
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"os"
 	"runtime"
@@ -17,7 +18,6 @@ import (
 	"sync"
 
 	"github.com/boni-fm/go-libsd3/pkg/config/constant"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,6 +26,7 @@ var (
 	mu                 sync.Mutex
 )
 
+// Node merepresentasikan node dalam struktur XML SettingWeb.xml.
 type Node struct {
 	XMLName  xml.Name
 	Attrs    []xml.Attr `xml:"-"`
@@ -33,43 +34,57 @@ type Node struct {
 	Text     string     `xml:",chardata"`
 }
 
+// DynamicSettingWebXMLReader membaca nilai dari SettingWeb.xml secara dinamis berdasarkan key.
+// Menggunakan cache berdasarkan waktu modifikasi file untuk menghindari pembacaan berulang.
+// Mengembalikan string kosong jika file tidak dapat dibaca atau key tidak ditemukan.
+// Parameter:
+//   - key: nama elemen XML yang nilainya akan diambil
 func DynamicSettingWebXMLReader(key string) string {
-	log := logrus.New()
 	path := getXMLSettingWebPath()
 
 	info, err := os.Stat(path)
 	if err != nil {
-		log.Fatalf("Failed to stat SettingWeb.xml: %v", err)
+		fmt.Fprintf(os.Stderr, "DynamicSettingWebXMLReader: gagal stat SettingWeb.xml: %v\n", err)
+		return ""
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
+
 	if cachedConnInfoTime == info.ModTime().Unix() {
 		for _, child := range cachedConnInfo.Children {
 			if strings.EqualFold(child.XMLName.Local, key) {
 				return child.Text
 			}
 		}
+		return ""
 	}
 
 	xmlFile, err := os.Open(path)
 	if err != nil {
-		log.Fatalf("Failed to open SettingWeb.xml: %v", err)
+		fmt.Fprintf(os.Stderr, "DynamicSettingWebXMLReader: gagal membuka SettingWeb.xml: %v\n", err)
+		return ""
 	}
 	defer xmlFile.Close()
 
-	byteValue, _ := io.ReadAll(xmlFile)
+	byteValue, err := io.ReadAll(xmlFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "DynamicSettingWebXMLReader: gagal membaca SettingWeb.xml: %v\n", err)
+		return ""
+	}
+
 	var xmlNode Node
 	xml.Unmarshal(byteValue, &xmlNode)
 
+	// Update cache BEFORE searching
+	cachedConnInfo = xmlNode
+	cachedConnInfoTime = info.ModTime().Unix()
+
 	for _, child := range xmlNode.Children {
-		if strings.EqualFold(strings.ToLower(child.XMLName.Local), strings.ToLower(key)) {
+		if strings.EqualFold(child.XMLName.Local, key) {
 			return child.Text
 		}
 	}
-
-	cachedConnInfo = xmlNode
-	cachedConnInfoTime = info.ModTime().Unix()
 
 	return ""
 }
