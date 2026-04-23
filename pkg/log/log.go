@@ -9,13 +9,45 @@ import (
 
 	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 	"github.com/sirupsen/logrus"
-	"github.com/snowzach/rotatefilehook"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // Logger adalah wrapper di atas logrus.Logger dengan kemampuan rotasi file log.
 // Mendukung konfigurasi timezone melalui environment variable TZ.
 type Logger struct {
 	*logrus.Logger
+}
+
+type lumberjackHook struct {
+	writer    *lumberjack.Logger
+	formatter logrus.Formatter
+	levels    []logrus.Level
+}
+
+func (h *lumberjackHook) Levels() []logrus.Level { return h.levels }
+
+func (h *lumberjackHook) Fire(entry *logrus.Entry) error {
+	b, err := h.formatter.Format(entry)
+	if err != nil {
+		return err
+	}
+	_, err = h.writer.Write(b)
+	return err
+}
+
+func newLumberjackHook(fp, appName string, loc *time.Location) logrus.Hook {
+	lj := &lumberjack.Logger{
+		Filename:   fp,
+		MaxSize:    50,
+		MaxBackups: 7,
+		MaxAge:     28,
+		Compress:   false,
+	}
+	return &lumberjackHook{
+		writer:    lj,
+		formatter: &CustomLogFormatter{AppName: &appName, Location: loc},
+		levels:    []logrus.Level{logrus.InfoLevel, logrus.WarnLevel, logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel},
+	}
 }
 
 // NewLogger membuat instance Logger baru dengan nama file log default.
@@ -29,8 +61,8 @@ func NewLogger() *Logger {
 	filename := generateLogFilename("", loc)
 	fp := filepath.Join(getLogFilePath(), filename)
 
-	rotateFileHook := generateRotateFileHook(fp, "", loc)
-	log.AddHook(rotateFileHook)
+	hook := newLumberjackHook(fp, "", loc)
+	log.AddHook(hook)
 
 	return &Logger{log}
 }
@@ -47,9 +79,24 @@ func NewLoggerWithFilename(AppName string) *Logger {
 	filename := generateLogFilename(AppName, loc)
 	fp := filepath.Join(getLogFilePath(), filename)
 
-	rotateFileHook := generateRotateFileHook(fp, AppName, loc)
-	log.AddHook(rotateFileHook)
+	hook := newLumberjackHook(fp, AppName, loc)
+	log.AddHook(hook)
 
+	return &Logger{log}
+}
+
+// NewLoggerWithPath membuat instance Logger baru menggunakan direktori kustom
+// sebagai pengganti direktori default yang terdeteksi oleh OS.
+// Berguna untuk pengujian dan layanan yang membutuhkan direktori log yang dapat dikonfigurasi.
+// File log diberi nama logs_<AppName>_<YYYY-MM-DD>.log di dalam dirPath.
+func NewLoggerWithPath(AppName, dirPath string) *Logger {
+	loc := resolveTimezone()
+	log := logrus.New()
+	log.SetLevel(logrus.InfoLevel)
+	filename := generateLogFilename(AppName, loc)
+	fp := filepath.Join(dirPath, filename)
+	hook := newLumberjackHook(fp, AppName, loc)
+	log.AddHook(hook)
 	return &Logger{log}
 }
 
@@ -92,23 +139,6 @@ func getLogFilePath() string {
 		return constant.FILEPATH_LOG_WINDOWS
 	}
 	return constant.FILEPATH_LOG_LINUX
-}
-
-func generateRotateFileHook(fp, appName string, loc *time.Location) *rotatefilehook.RotateFileHook {
-	hook, err := rotatefilehook.NewRotateFileHook(rotatefilehook.RotateFileConfig{
-		Filename:   fp,
-		MaxSize:    50,
-		MaxBackups: 7,
-		MaxAge:     28,
-		Level:      logrus.InfoLevel,
-		Formatter:  &CustomLogFormatter{AppName: &appName, Location: loc},
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	return hook.(*rotatefilehook.RotateFileHook)
 }
 
 // Say mencatat pesan di level Info.
