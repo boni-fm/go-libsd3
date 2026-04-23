@@ -619,20 +619,25 @@ func (d *Database) ExecuteInTransaction(ctx context.Context, fn func(tx pgx.Tx) 
 // CONNECTION MANAGEMENT METHODS
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-// matiin koneksi database
+// Close menutup koneksi pool database dan membebaskan semua resource terkait.
+// Mengembalikan ErrConnClose jika koneksi sudah ditutup sebelumnya.
+// Aman digunakan dengan defer:
+//
+//	db, err := postgres.NewDatabase(ctx, cfg)
+//	if err != nil { ... }
+//	defer db.Close()
 func (d *Database) Close() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if d.isClosed {
-		return fmt.Errorf("koneksi database nya udh ditutup")
+		return ErrConnClose
 	}
 
-	if !d.isClosed && d.Pool != nil {
+	if d.Pool != nil {
 		d.Pool.Close()
-		d.isClosed = true
 	}
-
+	d.isClosed = true
 	return nil
 }
 

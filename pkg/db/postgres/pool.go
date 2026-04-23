@@ -49,13 +49,15 @@ func (cp *ConnectionPool) RegisterConfig(kodeDc string, cfg Config) error {
 	return nil
 }
 
-// GetConnection mengembalikan koneksi dari pool berdasarkan kode DC.
-// Jika koneksi belum ada, koneksi baru akan dibuat menggunakan konfigurasi terdaftar.
+// Connect mengembalikan koneksi aktif untuk kode DC yang diberikan.
+// Jika koneksi belum ada, koneksi baru akan dibuat secara otomatis menggunakan
+// konfigurasi yang sudah didaftarkan lewat RegisterConfig.
+// Pemanggil dapat menggunakan defer pool.Close() untuk menutup seluruh pool setelah selesai.
 // Menggunakan pola double-checked locking untuk mencegah race condition.
 // Parameter:
 //   - ctx: context untuk pembatalan operasi
 //   - kodeDc: kode DC yang menentukan koneksi mana yang akan dikembalikan
-func (cp *ConnectionPool) GetConnection(ctx context.Context, kodeDc string) (*Database, error) {
+func (cp *ConnectionPool) Connect(ctx context.Context, kodeDc string) (*Database, error) {
 	// Fast path: check under read lock
 	cp.mu.RLock()
 	if conn, exists := cp.connections[kodeDc]; exists {
@@ -117,6 +119,15 @@ func (cp *ConnectionPool) CloseConnection(kodeDc string) error {
 	return err
 }
 
+// Close menutup semua koneksi dalam pool dan mengosongkan daftar koneksi.
+// Metode ini merupakan alias dari CloseAll dan cocok digunakan dengan defer:
+//
+//	pool := postgres.GetConnectionPool()
+//	defer pool.Close()
+func (cp *ConnectionPool) Close() error {
+	return cp.CloseAll()
+}
+
 // CloseAll menutup semua koneksi dalam pool dan mengosongkan daftar koneksi.
 func (cp *ConnectionPool) CloseAll() error {
 	cp.mu.Lock()
@@ -155,7 +166,7 @@ func (cp *ConnectionPool) GetAllKodeDcPoolKey() []string {
 //   - ctx: context untuk operasi pengambilan koneksi
 //   - kodeDc: kode DC yang statistiknya akan diambil
 func (cp *ConnectionPool) GetConnectionStats(ctx context.Context, kodeDc string) (map[string]interface{}, error) {
-	conn, err := cp.GetConnection(ctx, kodeDc)
+	conn, err := cp.Connect(ctx, kodeDc)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +227,7 @@ func (cp *ConnectionPool) UpdateConfig(kodeDc string, cfg Config) {
 //   - ctx: context untuk operasi
 //   - kodeDc: kode DC koneksi yang akan dicek
 func (cp *ConnectionPool) HealthCheck(ctx context.Context, kodeDc string) error {
-	conn, err := cp.GetConnection(ctx, kodeDc)
+	conn, err := cp.Connect(ctx, kodeDc)
 	if err != nil {
 		return err
 	}

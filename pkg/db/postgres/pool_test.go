@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestConcurrentGetConnection_NoDuplicate(t *testing.T) {
+func TestConcurrentConnect_NoDuplicate(t *testing.T) {
 	pool := &ConnectionPool{
 		connections: make(map[string]*Database),
 		configs:     make(map[string]Config),
@@ -55,14 +55,14 @@ func TestConnectionPool_HasConnection(t *testing.T) {
 	}
 }
 
-func TestConnectionPool_GetConnectionNoConfig(t *testing.T) {
+func TestConnectionPool_ConnectNoConfig(t *testing.T) {
 	pool := &ConnectionPool{
 		connections: make(map[string]*Database),
 		configs:     make(map[string]Config),
 	}
 
 	ctx := context.Background()
-	_, err := pool.GetConnection(ctx, "nonexistent")
+	_, err := pool.Connect(ctx, "nonexistent")
 	if err == nil {
 		t.Error("expected error for missing config")
 	}
