@@ -6,7 +6,8 @@ import (
 	"sync"
 )
 
-// struct model untuk kumpulan koneksi db nya
+// ConnectionPool adalah struktur yang mengelola kumpulan koneksi database.
+// Setiap koneksi diidentifikasi dengan kode DC unik.
 type ConnectionPool struct {
 	connections map[string]*Database
 	configs     map[string]Config
@@ -19,7 +20,8 @@ var (
 	once     sync.Once
 )
 
-// inisiasi/mulai instance kolam renang nya
+// GetConnectionPool mengembalikan instance singleton dari ConnectionPool.
+// Aman digunakan dari beberapa goroutine secara bersamaan.
 func GetConnectionPool() *ConnectionPool {
 	once.Do(func() {
 		instance = &ConnectionPool{
@@ -30,7 +32,11 @@ func GetConnectionPool() *ConnectionPool {
 	return instance
 }
 
-// RegisterConfig registers a database configuration with a unique key
+// RegisterConfig mendaftarkan konfigurasi database dengan kunci unik.
+// Mengembalikan error jika kunci sudah terdaftar.
+// Parameter:
+//   - kodeDc: kode DC unik sebagai kunci konfigurasi
+//   - cfg: konfigurasi database yang akan didaftarkan
 func (cp *ConnectionPool) RegisterConfig(kodeDc string, cfg Config) error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
@@ -43,40 +49,51 @@ func (cp *ConnectionPool) RegisterConfig(kodeDc string, cfg Config) error {
 	return nil
 }
 
-// GetConnection returns a connection from the pool by key
-// If the connection doesn't exist, it creates a new one
-func (cp *ConnectionPool) GetConnection(ctx context.Context, kodeDc string) (*Database, error) {
+// Connect mengembalikan koneksi aktif untuk kode DC yang diberikan.
+// Jika koneksi belum ada, koneksi baru akan dibuat secara otomatis menggunakan
+// konfigurasi yang sudah didaftarkan lewat RegisterConfig.
+// Pemanggil dapat menggunakan defer pool.Close() untuk menutup seluruh pool setelah selesai.
+// Menggunakan pola double-checked locking untuk mencegah race condition.
+// Parameter:
+//   - ctx: context untuk pembatalan operasi
+//   - kodeDc: kode DC yang menentukan koneksi mana yang akan dikembalikan
+func (cp *ConnectionPool) Connect(ctx context.Context, kodeDc string) (*Database, error) {
+	// Fast path: check under read lock
 	cp.mu.RLock()
-
-	// Check if connection already exists
 	if conn, exists := cp.connections[kodeDc]; exists {
 		cp.mu.RUnlock()
+		return conn, nil
+	}
+	cp.mu.RUnlock()
+
+	// Slow path: acquire write lock and double-check
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if conn, exists := cp.connections[kodeDc]; exists {
 		return conn, nil
 	}
 
 	// Get the configuration for this key
 	cfg, configExists := cp.configs[kodeDc]
-	cp.mu.RUnlock()
-
 	if !configExists {
 		return nil, fmt.Errorf("no configuration found for key '%s'", kodeDc)
 	}
 
-	// Create new connection
+	// Create new connection while holding the write lock to prevent duplicates
 	db, err := NewDatabase(ctx, &cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error creating database connection for key '%s': %w", kodeDc, err)
 	}
 
-	// Store connection in pool
-	cp.mu.Lock()
 	cp.connections[kodeDc] = db
-	cp.mu.Unlock()
-
 	return db, nil
 }
 
-// HasConnection checks if a connection exists in the pool
+// HasConnection mengecek apakah koneksi dengan kode DC tertentu ada dalam pool.
+// Parameter:
+//   - kodeDc: kode DC yang akan dicek
 func (cp *ConnectionPool) HasConnection(kodeDc string) bool {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
@@ -85,7 +102,9 @@ func (cp *ConnectionPool) HasConnection(kodeDc string) bool {
 	return exists
 }
 
-// CloseConnection closes a specific connection from the pool
+// CloseConnection menutup koneksi tertentu dari pool berdasarkan kode DC.
+// Parameter:
+//   - kodeDc: kode DC koneksi yang akan ditutup
 func (cp *ConnectionPool) CloseConnection(kodeDc string) error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
@@ -100,7 +119,16 @@ func (cp *ConnectionPool) CloseConnection(kodeDc string) error {
 	return err
 }
 
-// CloseAll closes all connections in the pool
+// Close menutup semua koneksi dalam pool dan mengosongkan daftar koneksi.
+// Metode ini merupakan alias dari CloseAll dan cocok digunakan dengan defer:
+//
+//	pool := postgres.GetConnectionPool()
+//	defer pool.Close()
+func (cp *ConnectionPool) Close() error {
+	return cp.CloseAll()
+}
+
+// CloseAll menutup semua koneksi dalam pool dan mengosongkan daftar koneksi.
 func (cp *ConnectionPool) CloseAll() error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
@@ -121,7 +149,7 @@ func (cp *ConnectionPool) CloseAll() error {
 	return nil
 }
 
-// GetAllKeys returns all registered connection keys
+// GetAllKodeDcPoolKey mengembalikan semua kunci kode DC yang terdaftar dalam pool.
 func (cp *ConnectionPool) GetAllKodeDcPoolKey() []string {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
@@ -133,9 +161,12 @@ func (cp *ConnectionPool) GetAllKodeDcPoolKey() []string {
 	return keys
 }
 
-// GetConnectionStats returns statistics about a connection
+// GetConnectionStats mengembalikan statistik koneksi berdasarkan kode DC.
+// Parameter:
+//   - ctx: context untuk operasi pengambilan koneksi
+//   - kodeDc: kode DC yang statistiknya akan diambil
 func (cp *ConnectionPool) GetConnectionStats(ctx context.Context, kodeDc string) (map[string]interface{}, error) {
-	conn, err := cp.GetConnection(ctx, kodeDc)
+	conn, err := cp.Connect(ctx, kodeDc)
 	if err != nil {
 		return nil, err
 	}
@@ -151,12 +182,14 @@ func (cp *ConnectionPool) GetConnectionStats(ctx context.Context, kodeDc string)
 	}, nil
 }
 
-// ReinitializeConnection closes and recreates a connection
+// ReinitializeConnection menutup dan membuat ulang koneksi untuk kode DC tertentu.
+// Parameter:
+//   - ctx: context untuk operasi
+//   - kodeDc: kode DC koneksi yang akan diinisialisasi ulang
 func (cp *ConnectionPool) ReinitializeConnection(ctx context.Context, kodeDc string) error {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	// Close existing connection
 	if conn, exists := cp.connections[kodeDc]; exists {
 		if err := conn.Close(); err != nil {
 			return fmt.Errorf("error closing existing connection '%s': %w", kodeDc, err)
@@ -164,13 +197,11 @@ func (cp *ConnectionPool) ReinitializeConnection(ctx context.Context, kodeDc str
 		delete(cp.connections, kodeDc)
 	}
 
-	// Get configuration
 	cfg, configExists := cp.configs[kodeDc]
 	if !configExists {
 		return fmt.Errorf("no configuration found for key '%s'", kodeDc)
 	}
 
-	// Create new connection
 	db, err := NewDatabase(ctx, &cfg)
 	if err != nil {
 		return fmt.Errorf("error creating new database connection for key '%s': %w", kodeDc, err)
@@ -180,7 +211,10 @@ func (cp *ConnectionPool) ReinitializeConnection(ctx context.Context, kodeDc str
 	return nil
 }
 
-// UpdateConfig updates the configuration for a key
+// UpdateConfig memperbarui konfigurasi untuk kode DC tertentu.
+// Parameter:
+//   - kodeDc: kode DC yang konfigurasinya akan diperbarui
+//   - cfg: konfigurasi baru
 func (cp *ConnectionPool) UpdateConfig(kodeDc string, cfg Config) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
@@ -188,9 +222,12 @@ func (cp *ConnectionPool) UpdateConfig(kodeDc string, cfg Config) {
 	cp.configs[kodeDc] = cfg
 }
 
-// HealthCheck checks the health of a connection
+// HealthCheck mengecek kesehatan koneksi untuk kode DC tertentu dengan mengirim ping.
+// Parameter:
+//   - ctx: context untuk operasi
+//   - kodeDc: kode DC koneksi yang akan dicek
 func (cp *ConnectionPool) HealthCheck(ctx context.Context, kodeDc string) error {
-	conn, err := cp.GetConnection(ctx, kodeDc)
+	conn, err := cp.Connect(ctx, kodeDc)
 	if err != nil {
 		return err
 	}
@@ -198,7 +235,10 @@ func (cp *ConnectionPool) HealthCheck(ctx context.Context, kodeDc string) error 
 	return conn.Ping(ctx)
 }
 
-// HealthCheckAll checks health of all connections
+// HealthCheckAll mengecek kesehatan semua koneksi dalam pool.
+// Mengembalikan map dari kode DC ke error (nil jika sehat).
+// Parameter:
+//   - ctx: context untuk operasi
 func (cp *ConnectionPool) HealthCheckAll(ctx context.Context) map[string]error {
 	cp.mu.RLock()
 	keys := make([]string, 0, len(cp.connections))
