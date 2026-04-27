@@ -36,4 +36,7 @@ const (
 	TIME_ONE_MINUTE = 60 * time.Second
 	// TIME_TEN_SECONDS adalah durasi sepuluh detik.
 	TIME_TEN_SECONDS = 10 * time.Second
+
+	// PREFIX_KUNCI adalah prefix yang digunakan untuk mengidentifikasi kunci dalam aplikasi.
+	PREFIX_KUNCI = "kunci"
 )

@@ -35,7 +35,13 @@ func (c *CustomLogFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	ts := entry.Time.In(loc).Format(constant.DATETIME_FORMAT)
-	fmt.Fprintf(b, "[%s] [%s] [%s] - %s - Data: %v\n", *c.AppName, ts, entry.Level, entry.Message, entry.Data)
+
+	if entry.Data != nil {
+		fmt.Fprintf(b, "[%s] [%s] [%s] - %s - Data: %v\n", *c.AppName, ts, entry.Level, entry.Message, entry.Data)
+
+	} else {
+		fmt.Fprintf(b, "[%s] [%s] [%s] - %s", *c.AppName, ts, entry.Level, entry.Message)
+	}
 
 	return b.Bytes(), nil
 }

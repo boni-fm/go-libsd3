@@ -40,7 +40,7 @@ func newLumberjackHook(fp, appName string, loc *time.Location) logrus.Hook {
 		Filename:   fp,
 		MaxSize:    50,
 		MaxBackups: 7,
-		MaxAge:     28,
+		MaxAge:     14,
 		Compress:   false,
 	}
 	return &lumberjackHook{

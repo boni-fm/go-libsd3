@@ -12,7 +12,6 @@ import (
 
 	"github.com/boni-fm/go-libsd3/pkg/config/constant"
 	"github.com/boni-fm/go-libsd3/pkg/settinglibgo"
-	"github.com/boni-fm/go-libsd3/pkg/yaml"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
@@ -21,12 +20,10 @@ import (
 
 // -=-=-=-=-=-=-=-=-=-
 // TODO:
-// - tambahin transaction untuk eksekusi query kyk di c#
-// - tambahin query builder
 // - tambahin logging, kalo bisa make hooks ? ~
 // - pelajarin fungsi hooks
 
-// Struct buat config database nya 🔥
+// Config Struct buat config database nya 🔥
 type Config struct {
 	// dc ~ 🏢
 	KodeDC string
@@ -36,6 +33,7 @@ type Config struct {
 
 	// dibawah ini optional,
 	// nanti di initialize connection akan ada default value nya
+	// default nya itu configurasi sendiri, karena kalau ngikutin dari pgx kelamaan
 	// kalo bisa diisi dari awal buat confignya, biar jelas
 	MaxConns        int
 	MinConns        int
@@ -44,12 +42,14 @@ type Config struct {
 
 	// buat ngecek kesehatan debe,
 	// kalo meleduk jadi ketauan
+	// untuk sekarang jadi config doang, tapi kedepan nya bisa dikembangin lagi
+	// buat healthcheck dll
 	// TODO:
 	// - add alert kalo selama healthcheck gagal
 	HealthCheckInterval time.Duration
 }
 
-// struct database nya 🔥
+// Database struct database nya 🔥
 // ini di-initialize pas buat connection db nya
 type Database struct {
 	Pool       *pgxpool.Pool
@@ -72,11 +72,12 @@ var connStrCache = struct {
 // INITIALIZE METHODS
 // -=-=-=-=-=-=-=-=-=-
 
-// fungsi inisiasi koneksi database baru
+// NewDatabase Fungsi inisiasi koneksi database baru
 // note:
 // - bisa dijalankan tanpa connection pool nya
-// - config nya gk harus semua diisi (ada default value)
+// - config nya gk harus semua diisi (ada default value) tapi lebih baik diisi
 // - ambil connstring dari settinglib, baca kunci nginx docker atau non-docker
+// ** jalankan ini kalau memang sudah percaya kalau connection nya satu aja
 func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 	connStr, err := func() (string, error) {
 		if cfg.KodeDC != "" {
@@ -94,7 +95,7 @@ func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 		ConnString: connStr,
 	}
 
-	poolConfig, err := db.GetPool(ctx)
+	poolConfig, err := db.GetPool()
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("gagal ping ke database :: %w", err)
 	}
 
 	db.Pool = pool
@@ -118,29 +119,10 @@ func NewDatabase(ctx context.Context, cfg *Config) (*Database, error) {
 
 func InitConstr(ctx context.Context) (string, error) {
 	var strKunci string
-	kodeDc := "Gxxx"
+	kodeDc := "G999"
 
 	if strKunciDocker := os.Getenv(constant.KEY_ENV_KUNCI); strKunciDocker != "" {
 		strKunci = strKunciDocker
-	} else {
-		kuncipath, _ := yaml.GetKunciConfigFilepath()
-		if _, err := os.Stat(kuncipath); err != nil {
-			fmt.Printf("[WARN] Config file does not exist at %s: %v\n", kuncipath, err)
-		} else {
-			keyYaml, readErr := yaml.ReadConfigDynamicWithKey(kuncipath, "kunci")
-			if readErr != nil {
-				fmt.Printf("[WARN] Failed to read 'kunci' from YAML: %v\n", readErr)
-			} else if keyYaml == nil {
-				fmt.Printf("[WARN] 'kunci' key is nil in YAML\n")
-			} else {
-				if kunciValue, ok := keyYaml.(string); ok && kunciValue != "" {
-					strKunci = kunciValue
-					kodeDc = strings.ToUpper(strings.TrimPrefix(kunciValue, "kunci"))
-				} else {
-					fmt.Printf("[WARN] 'kunci' is not a non-empty string in YAML, got type: %T, value: %v\n", keyYaml, keyYaml)
-				}
-			}
-		}
 	}
 
 	connStrCache.RLock()
@@ -150,9 +132,15 @@ func InitConstr(ctx context.Context) (string, error) {
 	}
 	connStrCache.RUnlock()
 
+	if !strings.HasPrefix(
+		strings.ToLower(strKunci),
+		constant.PREFIX_KUNCI,
+	) {
+		strKunci = constant.PREFIX_KUNCI + strings.TrimSpace(strKunci)
+	}
+
 	if strKunci == "" {
-		strKunci = "kunci" + strings.ToLower(kodeDc)
-		fmt.Printf("[WARN] Using fallback kunci: %s\n", strKunci)
+		strKunci = constant.PREFIX_KUNCI + strings.ToLower(kodeDc)
 	}
 
 	// Allow context cancellation
@@ -190,48 +178,20 @@ func InitConstrByKodeDc(ctx context.Context, kodeDc string, appName string) (str
 
 	var strKunci string
 
-	// Priority 1: Environment variable
 	if strKunciDocker := os.Getenv(constant.KEY_ENV_KUNCI); strKunciDocker != "" {
 		strKunci = strKunciDocker
-		fmt.Printf("[INFO] Using kunci from ENV: %s\n", strKunci)
-	} else {
-		// Priority 2: YAML config file
-		kuncipath, err := yaml.GetKunciConfigFilepath()
-		if err != nil {
-			fmt.Printf("[WARN] Failed to get kunci config filepath: %v\n", err)
-		} else if kuncipath == "" {
-			fmt.Printf("[WARN] Kunci config filepath is empty\n")
-		} else {
-			fmt.Printf("[DEBUG] Kunci config path: %s\n", kuncipath)
-
-			// Verify file exists
-			if _, err := os.Stat(kuncipath); err != nil {
-				fmt.Printf("[WARN] Config file does not exist at %s: %v\n", kuncipath, err)
-			} else {
-				keyYaml, readErr := yaml.ReadConfigDynamicWithKey(kuncipath, "kunci")
-				if readErr != nil {
-					fmt.Printf("[WARN] Failed to read 'kunci' from YAML: %v\n", readErr)
-				} else if keyYaml == nil {
-					fmt.Printf("[WARN] 'kunci' key is nil in YAML\n")
-				} else {
-					if kunciValue, ok := keyYaml.(string); ok && kunciValue != "" {
-						strKunci = kunciValue
-						fmt.Printf("[INFO] Using kunci from YAML: %s\n", strKunci)
-					} else {
-						fmt.Printf("[WARN] 'kunci' is not a non-empty string in YAML, got type: %T, value: %v\n", keyYaml, keyYaml)
-					}
-				}
-			}
-		}
 	}
 
-	// Priority 3: Fallback to default
+	if !strings.HasPrefix(
+		strings.ToLower(strKunci),
+		constant.PREFIX_KUNCI,
+	) {
+		strKunci = constant.PREFIX_KUNCI + strings.TrimSpace(strKunci)
+	}
+
 	if strKunci == "" {
-		strKunci = "kunci" + strings.ToLower(kodeDc)
-		fmt.Printf("[WARN] Using fallback kunci: %s\n", strKunci)
+		strKunci = constant.PREFIX_KUNCI + strings.ToLower(kodeDc)
 	}
-
-	fmt.Printf("[DEBUG] Final kunci key: %s\n", strKunci)
 
 	// Allow context cancellation
 	select {
@@ -275,11 +235,11 @@ func initDefaultConfig(cfg *Config) *Config {
 	}
 
 	if cfg.ConnMaxLifetime == 0 {
-		cfg.ConnMaxLifetime = 30 * time.Minute
+		cfg.ConnMaxLifetime = 15 * time.Minute
 	}
 
 	if cfg.MaxConnIdleTime == 0 {
-		cfg.MaxConnIdleTime = 10 * time.Minute
+		cfg.MaxConnIdleTime = 2 * time.Minute
 	}
 
 	if cfg.HealthCheckInterval == 0 {
@@ -292,16 +252,16 @@ func initDefaultConfig(cfg *Config) *Config {
 // dapetin config pgx pool (bawaan pgx)
 // disesuain config yg dipunya dengan config punya pgx
 // mulai koneksi make config mereka
-func (m *Database) GetPool(ctx context.Context) (*pgxpool.Config, error) {
-	config, err := pgxpool.ParseConfig(m.ConnString)
+func (d *Database) GetPool() (*pgxpool.Config, error) {
+	config, err := pgxpool.ParseConfig(d.ConnString)
 	if err != nil {
 		return nil, err
 	}
 
-	config.MaxConns = int32(m.ConfigDB.MaxConns)
-	config.MinConns = int32(m.ConfigDB.MinConns)
-	config.MaxConnLifetime = m.ConfigDB.ConnMaxLifetime
-	config.MaxConnIdleTime = m.ConfigDB.MaxConnIdleTime
+	config.MaxConns = int32(d.ConfigDB.MaxConns)
+	config.MinConns = int32(d.ConfigDB.MinConns)
+	config.MaxConnLifetime = d.ConfigDB.ConnMaxLifetime
+	config.MaxConnIdleTime = d.ConfigDB.MaxConnIdleTime
 
 	return config, nil
 }
@@ -314,8 +274,6 @@ func (m *Database) GetPool(ctx context.Context) (*pgxpool.Config, error) {
 // kalo make ini sama aja kyk make fungsi si pgx
 // bedanya kalo disini dibantu mutex biar thread-safe (ceritanya)
 // jadi kalo jalan di gorutine gk bakal tabrakan
-// TODO:
-// - logging?
 
 // single row query result ~
 func (d *Database) Query(ctx context.Context, query string, args ...interface{}) pgx.Row {
@@ -412,7 +370,7 @@ func (d *Database) SelectOne(ctx context.Context, dest interface{}, query string
 
 // ScanAllRows scans all rows from pgx.Rows using scany
 // Usage: rows, _ := db.QueryRows(ctx, query, args...); db.ScanAllRows(ctx, rows, &users)
-func (d *Database) ScanAllRows(ctx context.Context, rows pgx.Rows, dest interface{}) error {
+func (d *Database) ScanAllRows(rows pgx.Rows, dest interface{}) error {
 	err := pgxscan.ScanAll(dest, rows)
 	if err != nil {
 		return fmt.Errorf("error scanning all rows: %w", err)
@@ -422,7 +380,7 @@ func (d *Database) ScanAllRows(ctx context.Context, rows pgx.Rows, dest interfac
 
 // ScanOneRow scans a single row from pgx.Rows using scany
 // Usage: rows, _ := db.QueryRows(ctx, query, args...); db.ScanOneRow(ctx, rows, &user)
-func (d *Database) ScanOneRow(ctx context.Context, rows pgx.Rows, dest interface{}) error {
+func (d *Database) ScanOneRow(rows pgx.Rows, dest interface{}) error {
 	err := pgxscan.ScanOne(dest, rows)
 	if err != nil {
 		return fmt.Errorf("error scanning single row: %w", err)
@@ -432,7 +390,7 @@ func (d *Database) ScanOneRow(ctx context.Context, rows pgx.Rows, dest interface
 
 // ScanRow scans a single row directly from pgx.Row
 // Usage: row := db.Query(ctx, query, args...); db.ScanRow(ctx, &user, row)
-func (d *Database) ScanRow(ctx context.Context, dest interface{}, row pgx.Rows) error {
+func (d *Database) ScanRow(dest interface{}, row pgx.Rows) error {
 	err := pgxscan.ScanRow(dest, row)
 	if err != nil {
 		return fmt.Errorf("error scanning row: %w", err)
@@ -494,7 +452,9 @@ func (d *Database) InsertBatch(ctx context.Context, query string, records [][]in
 	}
 
 	results := d.Pool.SendBatch(ctx, batch)
-	defer results.Close()
+	defer func(results pgx.BatchResults) {
+		_ = results.Close()
+	}(results)
 
 	var lastID int64
 	for i := 0; i < len(records); i++ {
@@ -506,7 +466,7 @@ func (d *Database) InsertBatch(ctx context.Context, query string, records [][]in
 		// Extract ID from the tag if available
 		if i == len(records)-1 {
 			if rows := tag.RowsAffected(); rows > 0 {
-				lastID = int64(rows)
+				lastID = rows
 			}
 		}
 	}
@@ -598,13 +558,19 @@ func (d *Database) ExecuteInTransaction(ctx context.Context, fn func(tx pgx.Tx) 
 
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback(ctx)
+			err := tx.Rollback(ctx)
+			if err != nil {
+				return
+			}
 			panic(r)
 		}
 	}()
 
 	if err := fn(tx); err != nil {
-		tx.Rollback(ctx)
+		err := tx.Rollback(ctx)
+		if err != nil {
+			return err
+		}
 		return err
 	}
 
