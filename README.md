@@ -1,103 +1,143 @@
-## go-libsd3
+# go-libsd3
 
-Library utilitas Go untuk aplikasi SD3.
+Library Go bersama untuk layanan backend berbasis arsitektur DC (Data Center). Menyediakan utilitas siap pakai untuk koneksi database, logging, konfigurasi, Kafka, retry, HTTP middleware, dan lainnya.
 
-### Struktur Folder
-
-- `cmd/` : Entry point aplikasi utama.
-- `helper/` : Helper, misal pengelolaan kunci/setting, logging, dsb.
-- `pkg/` : Package utilitas seperti multidbutil (multiton DB pool), dbutil, dan logutil.
-- `test/` : File-file unit test.
-
-### Fitur Utama
-
-- Membaca konfigurasi koneksi database (PostgreSQL & SQL Server) dari file XML (`helper/kunci`).
-- Utilitas multiton database pool untuk koneksi per data center (`pkg/multidbutil`).
-- Logging dengan rotasi file harian dan format log yang mudah dibaca (`helper/logging`).
-- Helper untuk pengelolaan setting/kunci aplikasi (`helper/settinglibgooo`).
-- Producer/consumer helper untuk kebutuhan event atau message queue (jika ada di project Anda).
-
-### Contoh Penggunaan Multiton DB
-
-```go
-import "github.com/boni-fm/go-libsd3/pkg/multidbutil"
-
-func main() {
-    multiDB := &multidbutil.MultiDB{}
-    multiDB.SetupMultiDB("DC01")
-    db, err := multiDB.GetDB("DC01")
-    if err != nil {
-        panic(err)
-    }
-    // Gunakan db untuk query
-}
-```
-
-### Contoh Penggunaan Logger
-
-```go
-import "github.com/boni-fm/go-libsd3/helper/logging"
-
-func main() {
-    log := logging.NewLogger()
-    log.Say("Contoh log info")
-    log.SayError("Contoh log error")
-    log.SayWithField("Log dengan field", "user", "admin")
-}
-```
-
-### Contoh Penggunaan SettingLibGooo
-
-```go
-import "github.com/boni-fm/go-libsd3/helper/settinglibgooo"
-
-func main() {
-    // Inisialisasi setting/kunci
-    setting := settinglibgooo.NewSettingLib("DC01")
-    
-    // Membaca konfigurasi dari SettingWeb.xml
-    connInfo := setting.SettingWebClient.GetConnectionInfoPostgre()
-    fmt.Println("IP Postgres:", connInfo.IPPostgres)
-}
-```
-
-### Contoh Penggunaan Producer (jika ada)
-
-```go
-import "github.com/boni-fm/go-libsd3/helper/producer"
-
-func main() {
-    prod := producer.NewProducer("my-topic")
-    err := prod.SendMessage("Hello, SD3!")
-    if err != nil {
-        fmt.Println("Gagal kirim pesan:", err)
-    }
-}
-```
-
-Log akan otomatis tersimpan di folder log harian dengan format rapi.
-
-### Dependensi Eksternal
-
-- github.com/sirupsen/logrus
-- github.com/snowzach/rotatefilehook
-- github.com/mattn/go-colorable
-- github.com/lib/pq (driver PostgreSQL)
-
-### Cara Menjalankan Test
-
-Jalankan perintah berikut di root folder:
+## Instalasi
 
 ```bash
-go test ./test/...
+go get github.com/boni-fm/go-libsd3
 ```
 
-### Catatan
+## Daftar Paket
 
-- Pastikan file konfigurasi `SettingWeb.xml` tersedia di folder yang sesuai dengan OS dan struktur yang diharapkan.
-- Untuk logging, pastikan folder tujuan log (`/var/log/nginx/api` di Linux atau path yang sesuai di Windows) dapat ditulis oleh aplikasi.
-- Untuk penggunaan multiton DB, pastikan environment dan koneksi database sudah dikonfigurasi dengan benar.
-- Untuk producer/consumer, pastikan service/broker yang digunakan sudah berjalan dan dapat diakses.
+| Paket | Deskripsi |
+|-------|-----------|
+| `pkg/db/postgres` | Koneksi PostgreSQL dengan pool, registry multi-tenant, dan bulk export CSV |
+| `pkg/log` | Logger berbasis logrus dengan rotasi file dan dukungan timezone |
+| `pkg/retry` | Mekanisme retry dengan exponential back-off |
+| `pkg/envloader` | Pemuat environment variable dari file `.env` |
+| `pkg/httputil` | Middleware HTTP (request-id tracing) |
+| `pkg/kafkautil` | Producer Kafka berbasis franz-go |
+| `pkg/settinglibgo` | Klien layanan kunci (SettingLib) |
+| `pkg/auth` | Helper autentikasi AWS/JWT |
+| `pkg/config/constant` | Konstanta konfigurasi global |
+| `pkg/yaml` | Helper pembaca konfigurasi YAML |
+| `pkg/versi` | Informasi versi program |
 
----
-**Ini README.md di generate oleh AI**
+## Contoh Penggunaan
+
+### Database PostgreSQL
+
+```go
+import "github.com/boni-fm/go-libsd3/pkg/db/postgres"
+
+// Daftarkan database dengan composite key (kunci, kodedc)
+db, err := postgres.RegisterDB(ctx, "kunci-tenant-a", "DC001", postgres.Config{
+    KodeDC:  "DC001",
+    AppName: "myapp",
+})
+
+// Ambil kembali instance yang sudah terdaftar
+db, err := postgres.GetDB("kunci-tenant-a", "DC001")
+
+// Jalankan query
+var result MyStruct
+err = db.SelectOne(ctx, &result, "SELECT * FROM tabel WHERE id = $1", 1)
+
+// Export ke CSV
+var buf bytes.Buffer
+err = db.ExportQueryToCSV(ctx, &buf, "SELECT * FROM tabel")
+```
+
+### Logger
+
+```go
+import logger "github.com/boni-fm/go-libsd3/pkg/log"
+
+// Buat logger baru (timezone dari env TZ, fallback Asia/Jakarta)
+log := logger.NewLoggerWithFilename("myapp")
+log.Say("Aplikasi dimulai")
+log.SayWithField("koneksi berhasil", "host", "localhost")
+log.SayError("terjadi kesalahan")
+```
+
+### Retry
+
+```go
+import "github.com/boni-fm/go-libsd3/pkg/retry"
+
+err := retry.Do(ctx, retry.DefaultConfig(), func() error {
+    return callExternalService()
+})
+
+result, err := retry.DoWithResult(ctx, retry.DefaultConfig(), func() (string, error) {
+    return fetchData()
+})
+```
+
+### Environment Loader
+
+```go
+import "github.com/boni-fm/go-libsd3/pkg/envloader"
+
+// Muat .env tanpa menimpa variabel yang sudah ada
+err := envloader.Load(".env")
+
+// Muat .env dan timpa variabel yang sudah ada
+err := envloader.LoadOverride(".env.local")
+```
+
+### HTTP Middleware
+
+```go
+import "github.com/boni-fm/go-libsd3/pkg/httputil"
+
+// Tambahkan request-id ke setiap request
+mux := http.NewServeMux()
+handler := httputil.RequestIDMiddleware(mux)
+http.ListenAndServe(":8080", handler)
+
+// Ambil request-id dari context
+id := httputil.GetRequestID(r.Context())
+```
+
+### Kafka Producer
+
+```go
+import "github.com/boni-fm/go-libsd3/pkg/kafkautil"
+
+config := &kafkautil.ProducerConfig{
+    Brokers: []string{"localhost:9092"},
+    Topic:   "my-topic",
+}
+producer, err := kafkautil.NewProducer(config, logger)
+err = producer.SendJSON(ctx, "key", myData)
+```
+
+## Konfigurasi Environment Variable
+
+| Variabel | Deskripsi | Default |
+|----------|-----------|---------|
+| `TZ` | Timezone untuk logger (format IANA, mis. `Asia/Jakarta`) | `Asia/Jakarta` |
+| `KunciWeb` | Kunci identifikasi layanan kunci (Docker) | - |
+| `KUNCI_IP_DOMAIN` | Alamat IP/domain layanan kunci | `localhost` |
+
+## Panduan Kontribusi
+
+1. Fork repository ini
+2. Buat branch fitur: `git checkout -b feat/nama-fitur`
+3. Pastikan semua test lulus: `go test ./...`
+4. Pastikan tidak ada peringatan: `go vet ./...`
+5. Commit dengan pesan deskriptif dalam Bahasa Indonesia
+6. Buat Pull Request ke branch `main`
+
+### Konvensi
+
+- Semua komentar dokumentasi pada simbol yang diekspor **harus dalam Bahasa Indonesia**
+- Gunakan `fmt.Fprintf(os.Stderr, ...)` untuk error logging — hindari `log.Fatalf`
+- Semua akses map konkuren harus dilindungi dengan `sync.RWMutex`
+- Gunakan pola double-checked locking untuk inisialisasi malas yang thread-safe
+
+## Lisensi
+
+Hak cipta © 2025 boni-fm. Seluruh hak dilindungi.
