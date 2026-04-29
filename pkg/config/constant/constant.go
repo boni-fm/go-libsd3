@@ -3,10 +3,6 @@ package constant
 import "time"
 
 const (
-	// FILEPATH_CONFIG_WINDOWS adalah path file konfigurasi di sistem operasi Windows.
-	FILEPATH_CONFIG_WINDOWS = "D:/go-libsd3/config.yaml"
-	// FILEPATH_CONFIG_LINUX adalah path file konfigurasi di sistem operasi Linux.
-	FILEPATH_CONFIG_LINUX = "/etc/go-libsd3/config.yaml"
 	// KEY_ENV_KUNCI adalah nama environment variable untuk menyimpan kunci web.
 	KEY_ENV_KUNCI = "KunciWeb"
 

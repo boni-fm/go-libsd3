@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"sync"
@@ -692,15 +691,16 @@ func (d *Database) GetUpTime() time.Duration {
 	return time.Since(d.startTime)
 }
 
-// ExportQueryToCSV mengekspor hasil query ke format CSV yang ditulis ke w.
+// ExportQueryToCSV mengekspor hasil query ke format CSV dan menyimpannya ke file.
 // Baris pertama CSV adalah nama kolom. Setiap baris berikutnya adalah data.
 // Mengembalikan error yang menunjukkan nomor baris yang gagal jika scan gagal.
 // Parameter:
 //   - ctx: context untuk operasi database
-//   - w: io.Writer tempat output CSV ditulis
+//   - filePath: path lengkap file CSV tujuan (contoh: "/tmp/output.csv")
 //   - query: query SQL yang akan dieksekusi
+//   - separator: karakter pemisah CSV (opsional, default: ','), contoh: ",", ";", "\t"
 //   - args: argumen untuk query SQL
-func (d *Database) ExportQueryToCSV(ctx context.Context, w io.Writer, query string, args ...any) error {
+func (d *Database) ExportQueryToCSV(ctx context.Context, filePath string, query string, separator string, args ...any) error {
 	d.mu.RLock()
 	closed := d.isClosed
 	d.mu.RUnlock()
@@ -708,13 +708,25 @@ func (d *Database) ExportQueryToCSV(ctx context.Context, w io.Writer, query stri
 		return fmt.Errorf("ExportQueryToCSV: database connection is closed")
 	}
 
+	sep := ','
+	if len(separator) > 0 {
+		sep = rune(separator[0])
+	}
+
+	f, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("ExportQueryToCSV: gagal membuat file %q: %w", filePath, err)
+	}
+	defer f.Close()
+
 	rows, err := d.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("ExportQueryToCSV: gagal eksekusi query: %w", err)
 	}
 	defer rows.Close()
 
-	writer := csv.NewWriter(w)
+	writer := csv.NewWriter(f)
+	writer.Comma = sep
 	defer writer.Flush()
 
 	fieldDescs := rows.FieldDescriptions()

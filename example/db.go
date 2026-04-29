@@ -22,7 +22,6 @@ package example
 //   - Ganti placeholder DSN/kunci/kodeDC sesuai environment lo.
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -163,6 +162,7 @@ func ContohSelectScany(db *postgres.Database) {
 	if err != nil {
 		fmt.Printf("SelectAll gagal: %v\n", err)
 		return
+
 	}
 	for _, u := range users {
 		fmt.Printf("user: %+v\n", u)
@@ -212,7 +212,7 @@ func ContohScanHelpers(db *postgres.Database) {
 	defer rows.Close()
 
 	var users []User
-	if err := db.ScanAllRows(ctx, rows, &users); err != nil {
+	if err := db.ScanAllRows(rows, &users); err != nil {
 		fmt.Printf("ScanAllRows gagal: %v\n", err)
 		return
 	}
@@ -227,7 +227,7 @@ func ContohScanHelpers(db *postgres.Database) {
 	defer rows2.Close()
 
 	var u User
-	if err := db.ScanOneRow(ctx, rows2, &u); err != nil {
+	if err := db.ScanOneRow(rows2, &u); err != nil {
 		fmt.Printf("ScanOneRow gagal: %v\n", err)
 		return
 	}
@@ -355,16 +355,23 @@ func ContohTransaksi(db *postgres.Database) {
 func ContohExportCSV(db *postgres.Database) {
 	ctx := context.Background()
 
-	var buf bytes.Buffer
-	err := db.ExportQueryToCSV(ctx, &buf,
-		"SELECT id, name, email FROM users ORDER BY id LIMIT 100")
+	// default separator koma
+	err := db.ExportQueryToCSV(ctx, "/tmp/users.csv",
+		"SELECT id, name, email FROM users ORDER BY id LIMIT 100", "")
 	if err != nil {
 		fmt.Printf("ExportQueryToCSV gagal: %v\n", err)
 		return
 	}
+	fmt.Println("CSV berhasil diekspor ke /tmp/users.csv")
 
-	// buf sekarang isinya CSV — bisa ditulis ke file atau dikirim ke HTTP response
-	fmt.Printf("CSV hasil export (%d bytes):\n%s\n", buf.Len(), buf.String())
+	// pake separator titik koma
+	err = db.ExportQueryToCSV(ctx, "/tmp/users_semicolon.csv",
+		"SELECT id, name, email FROM users ORDER BY id LIMIT 100", ";")
+	if err != nil {
+		fmt.Printf("ExportQueryToCSV (semicolon) gagal: %v\n", err)
+		return
+	}
+	fmt.Println("CSV (semicolon) berhasil diekspor ke /tmp/users_semicolon.csv")
 }
 
 // ──────────────────────────────────────────────────────────

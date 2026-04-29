@@ -32,9 +32,8 @@ import (
 )
 
 var (
-	PREFIX   = "mujiyono"
-	BASEURL  = "localhost"
-	MAXRETRY = 3
+	PREFIX  = "mujiyono"
+	BASEURL = "localhost"
 )
 
 // Struct untuk http client nya
@@ -54,13 +53,14 @@ func NewSettingLibClient(kunci string) *SettingLibClient {
 			Timeout: constant.TIME_FIVE_MINUTES,
 		},
 		key: func() string {
+			kunci = strings.TrimSpace(kunci)
 			if strings.Contains(
 				strings.ToLower(kunci),
 				constant.PREFIX_KUNCI,
 			) {
 				return kunci
 			}
-			return constant.PREFIX_KUNCI + strings.TrimSpace(kunci)
+			return constant.PREFIX_KUNCI + kunci
 		}(),
 	}
 }

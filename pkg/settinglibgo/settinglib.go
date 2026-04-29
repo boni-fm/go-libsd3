@@ -11,7 +11,6 @@ import (
 // Mengambil kunci dari environment variable atau file konfigurasi YAML.
 // Mengembalikan string kosong jika kunci tidak ditemukan atau bukan bertipe string.
 func GetConnStringPostgre() string {
-	const dbtype = "POSTGRE"
 	var strKunci string
 	strKunciDocker := os.Getenv(constant.KEY_ENV_KUNCI)
 
@@ -30,6 +29,6 @@ func GetConnStringPostgre() string {
 	}
 
 	k := NewSettingLib(strKunci)
-	ConStr := k.GetConnectionString(dbtype)
+	ConStr := k.GetConnectionString(constant.DBTYPE_POSTGRE)
 	return ConStr
 }
