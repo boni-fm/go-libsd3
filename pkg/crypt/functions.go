@@ -1,4 +1,4 @@
-package authenticator
+package crypt
 
 import (
 	"crypto/aes"
@@ -6,25 +6,50 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 )
 
 // generateKey menghasilkan 32-byte key menggunakan SHA256 (sama seperti C#)
-func generateKey() []byte {
-	hash := sha256.Sum256([]byte("SD3Indomaret"))
+func generateKey(key string) []byte {
+	hash := sha256.Sum256([]byte(key))
 	return hash[:]
 }
 
 // generateIV menghasilkan 16-byte IV menggunakan MD5 (sama seperti C#)
-func generateIV() []byte {
-	hash := md5.Sum([]byte("SD3Indomaret"))
+func generateIV(key string) []byte {
+	hash := md5.Sum([]byte(key))
 	return hash[:]
 }
 
+// EncryptJSON mengenkripsi struct/map apapun menjadi encrypted base64 string
+func EncryptJSON(v any, key string) (string, error) {
+	jsonBytes, err := json.Marshal(v)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	return Encrypt(string(jsonBytes), key)
+}
+
+// DecryptJSON mendekripsi encrypted base64 string menjadi struct yang diinginkan
+func DecryptJSON(cipherText, key string, v any) error {
+	plainText, err := Decrypt(cipherText, key)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(plainText), v); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	return nil
+}
+
 // Encrypt mengenkripsi plainText menggunakan AES-CBC
-func Encrypt(plainText string) (string, error) {
-	keyBytes := generateKey()
-	iv := generateIV()
+func Encrypt(plainText, key string) (string, error) {
+	keyBytes := generateKey(key)
+	iv := generateIV(key)
 
 	block, err := aes.NewCipher(keyBytes)
 	if err != nil {
@@ -49,9 +74,9 @@ func Encrypt(plainText string) (string, error) {
 }
 
 // Decrypt mendekripsi cipherText menggunakan AES-CBC
-func Decrypt(cipherText string) (string, error) {
-	keyBytes := generateKey()
-	iv := generateIV()
+func Decrypt(cipherText, key string) (string, error) {
+	keyBytes := generateKey(key)
+	iv := generateIV(key)
 
 	cipherBytes, err := base64.StdEncoding.DecodeString(cipherText)
 	if err != nil {
