@@ -22,6 +22,19 @@ import (
 // - tambahin logging, kalo bisa make hooks ? ~
 // - pelajarin fungsi hooks
 
+// NOTE:
+// jadi pgx ini itu konsepnya beda dengan npgsql
+// kalau di npgsql itu simpel nya dia single connection to database
+// setiap init new NpgsqlConnection()
+// ... sedangkan kalau di golang (pgx) dia sistemnya *pooling*
+// jadi kalau poolnya di tutup, semua koneksinya tertutup (jadi gk bisa sembarang db.Close())
+// lalu open dan closed nya terjadi secara otomatis
+// kalau mau tuning untuk kebutuhan kecepatan bisa diatur max conn pool nya
+// karna dari situ bisa di atur, dalam satu kolam mau brp banyak ikan berenang
+// .
+///
+// OK ~ hehehe
+
 // Config Struct buat config database nya 🔥
 type Config struct {
 	// dc ~ 🏢
@@ -182,14 +195,12 @@ func InitConstrByKodeDc(ctx context.Context, kodeDc string, appName string) (str
 	}
 
 	if !strings.HasPrefix(
-		strings.ToLower(strKunci),
+		strings.ToLower(kodeDc),
 		constant.PREFIX_KUNCI,
 	) {
-		strKunci = constant.PREFIX_KUNCI + strings.TrimSpace(strKunci)
-	}
-
-	if strKunci == "" {
-		strKunci = constant.PREFIX_KUNCI + strings.ToLower(kodeDc)
+		strKunci = constant.PREFIX_KUNCI + strings.TrimSpace(kodeDc)
+	} else {
+		strKunci = strings.ToLower(kodeDc)
 	}
 
 	// Allow context cancellation
@@ -238,7 +249,7 @@ func initDefaultConfig(cfg *Config) *Config {
 	}
 
 	if cfg.MaxConnIdleTime == 0 {
-		cfg.MaxConnIdleTime = 2 * time.Minute
+		cfg.MaxConnIdleTime = 1 * time.Minute
 	}
 
 	if cfg.HealthCheckInterval == 0 {
