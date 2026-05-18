@@ -50,29 +50,40 @@ func (cp *ConnectionPool) RegisterConfig(kodeDc string, cfg Config) error {
 }
 
 // Connect mengembalikan koneksi aktif untuk kode DC yang diberikan.
-// Jika koneksi belum ada, koneksi baru akan dibuat secara otomatis menggunakan
-// konfigurasi yang sudah didaftarkan lewat RegisterConfig.
+// Jika koneksi belum ada atau sudah ditutup, koneksi baru akan dibuat secara otomatis
+// menggunakan konfigurasi yang sudah didaftarkan lewat RegisterConfig.
 // Pemanggil dapat menggunakan defer pool.Close() untuk menutup seluruh pool setelah selesai.
 // Menggunakan pola double-checked locking untuk mencegah race condition.
 // Parameter:
 //   - ctx: context untuk pembatalan operasi
 //   - kodeDc: kode DC yang menentukan koneksi mana yang akan dikembalikan
 func (cp *ConnectionPool) Connect(ctx context.Context, kodeDc string) (*Database, error) {
-	// Fast path: check under read lock
+	// Fast path: return existing connection only if it is still alive.
+	// We must check IsClosed() here because an eviction callback (e.g. from
+	// DcAdapter.onEvict) may have closed the *Database while it still sits in
+	// cp.connections — the pool map is not updated atomically with the close.
 	cp.mu.RLock()
-	if conn, exists := cp.connections[kodeDc]; exists {
-		cp.mu.RUnlock()
-		return conn, nil
-	}
+	conn, exists := cp.connections[kodeDc]
 	cp.mu.RUnlock()
 
-	// Slow path: acquire write lock and double-check
+	if exists && !conn.IsClosed() {
+		return conn, nil
+	}
+
+	// Slow path: acquire write lock, double-check, then reconnect.
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	// Double-check after acquiring write lock
-	if conn, exists := cp.connections[kodeDc]; exists {
+	// Re-read under write lock — another goroutine may have reconnected already.
+	conn, exists = cp.connections[kodeDc]
+	if exists && !conn.IsClosed() {
 		return conn, nil
+	}
+
+	// If a stale (closed) entry is still in the map, remove it before creating
+	// a fresh connection so the new entry is stored cleanly.
+	if exists {
+		delete(cp.connections, kodeDc)
 	}
 
 	// Get the configuration for this key
