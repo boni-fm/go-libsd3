@@ -60,7 +60,6 @@ func NewProducer(config *ProducerConfig, logger *logging.Logger) (*Producer, err
 		kgo.DefaultProduceTopic(config.Topic),
 		kgo.ProducerBatchMaxBytes(1024 * 1024),
 		kgo.ProducerBatchCompression(kgo.SnappyCompression()),
-		kgo.RequiredAcks(kgo.LeaderAck()),
 		kgo.ClientID("franz-kafka-producer"),
 		kgo.ConnIdleTimeout(5 * time.Minute),
 		kgo.RequiredAcks(kgo.AllISRAcks()),
